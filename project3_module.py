@@ -45,8 +45,25 @@ def load_data(filename_1, filename_2 = "", filename_3 = "", filename_4 = "", plo
     return freq_array
 
 
-def filter_data(data_set, filter_type="high", impulse_response="finite", cuttoffs, freq = False, dimension=2):
-  # here we will take a data_set, which can be an array of any amount of arrays representing data, in any dimension
-  # can filter a max of up to five dimensions (for example: MRI data of multiple patients)
+def filter_data(data_set, filter_type="high", impulse_response="finite", cuttoffs, freq = False, plot = True):
+  # here we will take a data_set, which can be an array of any amount of arrays representing data
+  # filter it and return the filtered data
   return filtered_data
 
+
+def detect_heartbeats(ecg_data_time,freq_data_time = None plot = True):
+  # here you need filtered ecg_data
+  # this function can plot the data.
+  # you can input frequency data if you want it too
+  
+  # returns array of heartbeat_times
+  return heartbeat_times
+
+def calculate_HRV(ecg_data, plot = False):
+
+  return HRV_array,HRV
+
+
+def get_HRV_BP(HRV_array, db = False, bar_plot = True):
+
+  
