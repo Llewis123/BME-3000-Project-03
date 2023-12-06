@@ -27,19 +27,43 @@ import numpy as np
 import pandas as pd
 import scipy as sp
 from matplotlib import pyplot as plt
+from scipy import signal
+from scipy import fft
 
-def load_data(filename_1, filename_2 = "", filename_3 = "", filename_4 = "", plot = True, time=True, freq=False, power=False):
+
+def load_data(filename_1, filename_2 , filename_3 , filename_4, plot = True, time=True, freq=False, power=False):
   # we will load the data and then plot it. It will be able to read in files of .csv, .txt, .npz
+  # filename_1 = 'Arai_sit_relax.txt'
+
+  # filename_2 = 'Arai_sit_meditation.txt'
+
+  # filename_3 = 'Arai_sit_puzzles.txt'
+
+  # filename_4 = 'Arai_bounce_yogaball.txt'
+
+  activity_1 = np.loadtxt(filename_1)
+
+  activity_2 = np.loadtxt(filename_2)
+
+  activity_3 = np.loadtxt(filename_3)
+
+  activity_4 = np.loadtxt(filename_4)
+  
+  
+  return activity_1, activity_2, activity_3, activity_4
+
   # it will also be able to plot time or frequency domain (with optional power) if the data is in either domain.
 
-  def load_time(filenames):
+def load_time(time, filename_1, filename_2, filename_3, filename_4):
     # takes in array of filenames to load
-    # loads into array, returns it for plotting
-  
-    return time_array
-  
-  def load_freq(filenames):
-    # takes in array of filenames to load
+    time = np.arange(0,5,1/100)
+    #np.arange(0, len(load_cell_data) * 1/fs, 1/fs)
+    
+    concatenated_data = np.concatenate([activity_1, activity_2, activity_3, activity_4])
+    
+    return concatenated_data
+    
+
     # loads into array, returns for plotting
   
     return freq_array
