@@ -153,7 +153,7 @@ def filter_data(data_set, general=True, all_filters=False, diagnostic=False, mus
         Q : float
             Quality factor. The default is 30
         fs : float, optional
-            Sampling frequecny of the system. The default is 500.
+            Sampling frequency of the system. The default is 500.
 
         Returns
         -------
@@ -188,6 +188,9 @@ def filter_data(data_set, general=True, all_filters=False, diagnostic=False, mus
 
         """
 
+
+    if general:
+        for voltage in data_set:
 
     # here we will take a data_set, which can be an array of any amount of arrays representing data
     # filter it and return the filtered data
