@@ -26,20 +26,33 @@ If you are using numpy, scipy, pandas or matplotlib with your project: you only 
 import numpy as np
 
 
-def load_data(filename_1, filename_2, filename_3, filename_4, plot=True, time=True, freq=False, power=False,
-              ext=".txt"):
+def load_data(filename_1, filename_2, filename_3, filename_4):
+    """
+    All data must be the same file type
+    This does not load individual columns, that you must do on your own.
+
+    :param filename_1:
+    :param filename_2:
+    :param filename_3:
+    :param filename_4:
+    :param plot:
+    :param time:
+    :param freq:
+    :param power:
+    :return:
+    """
     # we will load the data and then plot it. It will be able to read in files of .csv, .txt, .npz
-    if ext == ".txt":
+    if filename_1.endswith(".txt"):
         activity_1 = np.loadtxt(filename_1)
         activity_2 = np.loadtxt(filename_2)
         activity_3 = np.loadtxt(filename_3)
         activity_4 = np.loadtxt(filename_4)
-    elif ext == ".csv":
+    elif filename_1.endswith(".csv"):
         activity_1 = np.loadtxt(filename_1, delimiter=',')
         activity_2 = np.loadtxt(filename_2, delimiter=',')
         activity_3 = np.loadtxt(filename_3, delimiter=',')
         activity_4 = np.loadtxt(filename_4, delimiter=',')
-    elif ext == ".npz":
+    elif filename_1.endswith(".npz"):
         activity_1 = np.load(filename_1)
         activity_2 = np.load(filename_2)
         activity_3 = np.load(filename_3)
@@ -47,24 +60,34 @@ def load_data(filename_1, filename_2, filename_3, filename_4, plot=True, time=Tr
     else:
         return print("Your file is not one of the specified file types.")
 
-
     return activity_1, activity_2, activity_3, activity_4
 
     # it will also be able to plot time or frequency domain (with optional power) if the data is in either domain.
 
 
-def load_x(time, filename_1, filename_2, filename_3, filename_4):
+def load_x(voltage_data, fs, plot=True,
+           freq=False, power=False, ):
     # takes in array of filenames to load
-    time = np.arange(0, 5, 1 / 100)
+
     # np.arange(0, len(load_cell_data) * 1/fs, 1/fs)
+    x_axs = np.array([])
+    activities = np.array([])
+    concatenated_data = np.concatenate(voltage_data)
 
-    concatenated_data = np.concatenate([activity_1, activity_2, activity_3, activity_4])
-
-    return concatenated_data
-
+    index = 0
+    if freq:
+        print()
+    else:
+        for voltage_set in voltage_data:
+            time = np.arange(0, len(voltage_set) * 1/fs, 1/fs)
+            x_axs[index] = time
+            activities[index] = voltage_set
+            index += 1
     # loads into array, returns for plotting
 
-    return freq_array
+    # the indexes of the x_axs array matches the indexes of the initial data
+    # E.G. the 0th index of voltage data's time array is associated with the 0th index of the x_axs array.
+    return concatenated_data, x_axs, activities
 
 
 def filter_data(data_set, filter_type="high", impulse_response="finite", cuttoffs, freq=False, plot=True):
