@@ -23,7 +23,6 @@ IMPORTANT:
 If you are using numpy, scipy, pandas or matplotlib with your project: you only need to import this module.
 
 """
-from math import ceil
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -73,8 +72,8 @@ def load_x(voltage_data, fs, plot=True,
            freq=False, power=False, ):
     # takes in array of filenames to load
 
-    x_axis = np.array([])
-    activities = np.array([])
+    x_axis = np.empty(len(voltage_data), dtype=object)
+    activities = np.empty(len(voltage_data), dtype=object)
     concatenated_data = np.concatenate(voltage_data)
 
     index = 0
@@ -95,7 +94,7 @@ def load_x(voltage_data, fs, plot=True,
         num_subplots = len(voltage_data)
 
         # Create a grid of subplots based on the number of data arrays
-        fig, axs = plt.subplots(num_subplots, 1, figsize=(10, 3 * num_subplots), clear = True)
+        fig, axs = plt.subplots(num_subplots, 1, figsize=(10, 3 * num_subplots), clear=True)
 
         # Plot each data array on its own subplot
         for i, data_array in enumerate(voltage_data):
@@ -111,28 +110,29 @@ def load_x(voltage_data, fs, plot=True,
         plt.show()
         # the indexes of the x_axs array matches the indexes of the initial data
         # E.G. the 0th index of voltage data's time array is associated with the 0th index of the x_axs array.
-     return concatenated_data, x_axis, activities
+    return concatenated_data, x_axis, activities
 
 
-def filter_data(data_set, filter_type="high", impulse_response="finite", cuttoffs, freq=False, plot=True):
+def filter_data(data_set, general=True, all_filters=False, diagnostic=False, muscle_noise=False, Ambulatory=False,
+                freq=False, plot=True):
+
     # here we will take a data_set, which can be an array of any amount of arrays representing data
     # filter it and return the filtered data
-    return filtered_data
+    return None
 
-
-def detect_heartbeats(ecg_data_time, freq_data_time=None plot = True
-
-):
+# def detect_heartbeats(ecg_data_time, freq_data_time=None plot = True
+#
+# ):
 # here you need filtered ecg_data
 # this function can plot the data.
 # you can input frequency data if you want it too
 
-# returns array of heartbeat_times
-return heartbeat_times
+# returns array of heartbeat_times#
+# return heartbeat_times
 
 
-def calculate_HRV(ecg_data, plot=False):
-    return HRV_array, HRV
+# def calculate_HRV(ecg_data, plot=False):
+#     return HRV_array, HRV
 
 
-def get_HRV_BP(HRV_array, db=False, bar_plot=True):
+# def get_HRV_BP(HRV_array, db=False, bar_plot=True):
