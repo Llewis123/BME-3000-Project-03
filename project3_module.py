@@ -115,6 +115,79 @@ def load_x(voltage_data, fs, plot=True,
 
 def filter_data(data_set, general=True, all_filters=False, diagnostic=False, muscle_noise=False, Ambulatory=False,
                 freq=False, plot=True):
+    def notch_filter(w0, Q, cutoffs = 60, fs=500):
+        """
+    
+
+        Parameters
+        ----------
+        data_set : TYPE
+            DESCRIPTION.
+        general : TYPE, optional
+            DESCRIPTION. The default is True.
+        all_filters : TYPE, optional
+            DESCRIPTION. The default is False.
+        diagnostic : TYPE, optional
+            DESCRIPTION. The default is False.
+        muscle_noise : TYPE, optional
+            DESCRIPTION. The default is False.
+        Ambulatory : TYPE, optional
+            DESCRIPTION. The default is False.
+        freq : TYPE, optional
+            DESCRIPTION. The default is False.
+        plot : TYPE, optional
+            DESCRIPTION. The default is True.
+
+        Returns
+        -------
+        None.
+
+        """
+        """
+    
+
+        Parameters
+        ----------
+        w0 : float
+            Frequency to remove from the filter.
+        Q : float
+            Quality factor. The default is 30
+        fs : float, optional
+            Sampling frequecny of the system. The default is 500.
+
+        Returns
+        -------
+        b,a: ndarray.
+        Numerator (b) and denominator (a) polynomials of the IIR filter.
+
+        """
+    #scipy.signal.iirnotch(w0, Q, fs=2.0)
+
+    def butterworth_filter(N, Wn, btype='low', analog=False, output='ba', fs=None):
+        """
+    
+
+        Parameters
+        ----------
+        N : int
+            the order of the filter.
+        Wn : array
+            the critical frequency.
+        btype : TYPE, optional
+            DESCRIPTION. The default is 'low'.
+        analog : TYPE, optional
+            DESCRIPTION. The default is False.
+        output : TYPE, optional
+            DESCRIPTION. The default is 'ba'.
+        fs : int, optional
+            sampling frequency. The default is None.
+
+        Returns
+        -------
+        None.
+
+        """
+
 
     # here we will take a data_set, which can be an array of any amount of arrays representing data
     # filter it and return the filtered data
