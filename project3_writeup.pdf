@@ -1,1 +1,41 @@
+"""
+
+Writeup Writeup Writeup Writeup Writeup Writeupv
+
+ANS Evaluation module
+By Bila Bogre & Lincoln Lewis
+@Llewis123 (github) & @B11LA (github)
+
+This module provides novel functions for analyzing and filtering nervous system activity
+This was originally designed and used to:
+1. Filter ECG data
+2. Automatically detect heartbeat times
+3. Calculate HRV
+4. Find HRV power in LF and HF frequency bands
+5. Compare LF/HF ratios during periods of relaxation and stress
+"""
+
+# Part 1
+
+For the ANS Evaluation project we had a student perform the analysis by placing the ECG sparkfun sensor
+on the areas that were shown in an example we found that they should all be placed. The four activities
+that were chosen were all based on the instructions that were given to us for comparison. The first activity
+had the student just sitting in their seat and closing their eyes for five minutes, this activity was a bit harder
+to capture because of the noise in the class room and the clothing being very close to the sensor would interfere 
+with capturing the data as accurate as possible. The second activity had the student sitting and listening to some 
+music that helped with meditation which was for the relaxing activity that is not at rest. The third activity was 
+performed by sitting and doing a quite difficult puzzle. The fourth activity was the physically stressful activity
+and the student bounced a yogaball for five minutes. These activites were all chosen by the student as they were the
+easiest way to record data for the amount of time left in class. The activities were mentioned because in the code of 
+this project we defined the activites as the number according to the order given in the instructions.
+The functions we used in this were load_data and load_x. Load_data can load recorded data of the different activities
+and can load them as 3 different types of data, which could be in, .txt, .npz, or .csv files. The load_x function
+chooses wheteher to load the data in the domain it's already in and also has an option to plot these sets or not.
+
+#Part 2
+
+We chose to write a wrapper function to define the filtered data was filter_data, these filtered the data using 2 
+filters to call. in the wrapper function we defined notch_filter and butterworth_filter, for a notch filter and butterworth 
+filter, which is used  because these 2 filters remove any sounds or artifacts that disrupted the recording of the data, 
+these are flexible because to run these filters the specific functions need to be called to run. 
 
