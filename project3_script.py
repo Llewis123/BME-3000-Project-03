@@ -1,7 +1,5 @@
 import project3_module as p3m
 import numpy as np
-import pandas as pd
-import scipy as sp
 from matplotlib import pyplot as plt
 from scipy import signal
 from scipy import fft

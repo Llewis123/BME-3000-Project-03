@@ -23,7 +23,11 @@ IMPORTANT:
 If you are using numpy, scipy, pandas or matplotlib with your project: you only need to import this module.
 
 """
+from math import ceil
+
 import numpy as np
+from matplotlib import pyplot as plt
+from scipy import fft
 
 
 def load_data(filename_1, filename_2, filename_3, filename_4):
@@ -69,25 +73,45 @@ def load_x(voltage_data, fs, plot=True,
            freq=False, power=False, ):
     # takes in array of filenames to load
 
-    # np.arange(0, len(load_cell_data) * 1/fs, 1/fs)
-    x_axs = np.array([])
+    x_axis = np.array([])
     activities = np.array([])
     concatenated_data = np.concatenate(voltage_data)
 
     index = 0
     if freq:
-        print()
+        for voltage_set in voltage_data:
+            freq = fft.rfftfreq(len(voltage_set), 1 / fs)
+            x_axis[index] = freq
+            activities[index] = voltage_set
+            index += 1
     else:
         for voltage_set in voltage_data:
-            time = np.arange(0, len(voltage_set) * 1/fs, 1/fs)
-            x_axs[index] = time
+            time = np.arange(0, len(voltage_set) * 1 / fs, 1 / fs)
+            x_axis[index] = time
             activities[index] = voltage_set
             index += 1
     # loads into array, returns for plotting
+    if plot:
+        num_subplots = len(voltage_data)
 
-    # the indexes of the x_axs array matches the indexes of the initial data
-    # E.G. the 0th index of voltage data's time array is associated with the 0th index of the x_axs array.
-    return concatenated_data, x_axs, activities
+        # Create a grid of subplots based on the number of data arrays
+        fig, axs = plt.subplots(num_subplots, 1, figsize=(10, 3 * num_subplots), clear = True)
+
+        # Plot each data array on its own subplot
+        for i, data_array in enumerate(voltage_data):
+            axs[i].plot(data_array, label=f'Data {i + 1}')
+            axs[i].set_xlabel('Time')
+            axs[i].set_ylabel('Voltage')
+            axs[i].legend()
+
+        # Adjust layout to prevent subplot overlap
+        plt.tight_layout()
+
+        # Show the plots
+        plt.show()
+        # the indexes of the x_axs array matches the indexes of the initial data
+        # E.G. the 0th index of voltage data's time array is associated with the 0th index of the x_axs array.
+     return concatenated_data, x_axis, activities
 
 
 def filter_data(data_set, filter_type="high", impulse_response="finite", cuttoffs, freq=False, plot=True):
