@@ -27,6 +27,7 @@ If you are using numpy, scipy, pandas or matplotlib with your project: you only 
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import fft
+from scipy.signal import butter, lfilter, iirnotch
 
 
 def load_data(filename_1, filename_2, filename_3, filename_4):
@@ -115,86 +116,61 @@ def load_x(voltage_data, fs, plot=True,
 
 def filter_data(data_set, general=True, all_filters=False, diagnostic=False, muscle_noise=False, Ambulatory=False,
                 freq=False, plot=True):
-    def notch_filter(w0, Q, cutoffs = 60, fs=500):
-        """
-    
-
-        Parameters
-        ----------
-        data_set : TYPE
-            DESCRIPTION.
-        general : TYPE, optional
-            DESCRIPTION. The default is True.
-        all_filters : TYPE, optional
-            DESCRIPTION. The default is False.
-        diagnostic : TYPE, optional
-            DESCRIPTION. The default is False.
-        muscle_noise : TYPE, optional
-            DESCRIPTION. The default is False.
-        Ambulatory : TYPE, optional
-            DESCRIPTION. The default is False.
-        freq : TYPE, optional
-            DESCRIPTION. The default is False.
-        plot : TYPE, optional
-            DESCRIPTION. The default is True.
-
-        Returns
-        -------
-        None.
-
-        """
-        """
-    
-
-        Parameters
-        ----------
-        w0 : float
-            Frequency to remove from the filter.
-        Q : float
-            Quality factor. The default is 30
-        fs : float, optional
-            Sampling frequency of the system. The default is 500.
-
-        Returns
-        -------
-        b,a: ndarray.
-        Numerator (b) and denominator (a) polynomials of the IIR filter.
-
-        """
-    #scipy.signal.iirnotch(w0, Q, fs=2.0)
-
-    def butterworth_filter(N, Wn, btype='low', analog=False, output='ba', fs=None):
-        """
-    
-
-        Parameters
-        ----------
-        N : int
-            the order of the filter.
-        Wn : array
-            the critical frequency.
-        btype : TYPE, optional
-            DESCRIPTION. The default is 'low'.
-        analog : TYPE, optional
-            DESCRIPTION. The default is False.
-        output : TYPE, optional
-            DESCRIPTION. The default is 'ba'.
-        fs : int, optional
-            sampling frequency. The default is None.
-
-        Returns
-        -------
-        None.
-
-        """
+    """
 
 
-    if general:
-        for voltage in data_set:
+    Parameters
+    ----------
+    data_set : TYPE
+        DESCRIPTION.
+    general : TYPE, optional
+        DESCRIPTION. The default is True.
+    all_filters : TYPE, optional
+        DESCRIPTION. The default is False.
+    diagnostic : TYPE, optional
+        DESCRIPTION. The default is False.
+    muscle_noise : TYPE, optional
+        DESCRIPTION. The default is False.
+    Ambulatory : TYPE, optional
+        DESCRIPTION. The default is False.
+    freq : TYPE, optional
+        DESCRIPTION. The default is False.
+    plot : TYPE, optional
+        DESCRIPTION. The default is True.
 
-    # here we will take a data_set, which can be an array of any amount of arrays representing data
-    # filter it and return the filtered data
-    return None
+    Returns
+    -------
+    None.
+
+    """
+
+    def notch_filter(data, Q, sampling_rate, notch_frequency=60):
+        # Design parameters for the notch filter
+        quality_factor = 30.0  # Quality factor for the notch filter
+
+        # Calculate notch filter coefficients
+        notch_frequency_normalized = notch_frequency / (0.5 * sampling_rate)
+        b, a = iirnotch(notch_frequency_normalized, quality_factor, sampling_rate)
+
+        # Apply the notch filter to the data
+        filtered_data = lfilter(b, a, data)
+
+        return filtered_data
+
+    # scipy.signal.iirnotch(w0, Q, fs=2.0)
+
+    def butterworth_filter(data, sampling_rate, cutoff_frequency, order=4, filter_type='low'):
+        # Design parameters for the Butterworth filter
+        nyquist_frequency = 0.5 * sampling_rate
+        cutoff_frequency_normalized = cutoff_frequency / nyquist_frequency
+
+        # Design the Butterworth filter
+        b, a = butter(order, cutoff_frequency_normalized, btype=filter_type)
+
+        # Apply the Butterworth filter to the data
+        filtered_data = lfilter(b, a, data)
+
+        return filtered_data
 
 # def detect_heartbeats(ecg_data_time, freq_data_time=None plot = True
 #
