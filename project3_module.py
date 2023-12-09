@@ -117,7 +117,7 @@ def load_x(voltage_data, fs, plot=True,
     return concatenated_data, x_axis, activities
 
 
-def filter_data(data_set, general=True, all_filters=False, diagnostic=False, muscle_noise=False, Ambulatory=False,
+def filter_data(data_set, fs, general=True, all_filters=False, diagnostic=False, muscle_noise=False, Ambulatory=False,
                 freq=False, plot=True):
     """
 
@@ -181,7 +181,8 @@ def filter_data(data_set, general=True, all_filters=False, diagnostic=False, mus
 
         filtered_data_set = np.empty(len(data_set), dtype=object)
         for i, data_array in enumerate(data_set):
-            filtered_data_set[i] = notch_filter(butterworth_filter(data_array, 500, 150), 30, 500)
+            filtered_data_set[i] = butterworth_filter(butterworth_filter(data_array, fs, 150), fs, 0.05, filter_type='high')
+
 
 
 def getResponses(data, fs=500):
