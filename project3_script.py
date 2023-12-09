@@ -19,3 +19,7 @@ plt.xlabel('Time (s)')
 plt.ylabel('Raw Data')
 plt.title('Concatenated Activities')
 plt.grid()
+
+
+hrv_analysis = p3m.calculate_HRV(r_peaks, fs)
+
