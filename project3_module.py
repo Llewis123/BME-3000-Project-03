@@ -31,8 +31,10 @@ from scipy import fft
 from scipy import signal
 from scipy.signal import butter, lfilter, iirnotch
 from scipy.signal import find_peaks
+import biosppy
 
 
+arduino_IV_CF = 204.6
 def load_data(filename_1, filename_2, filename_3, filename_4):
     """
     All data must be the same file type
@@ -85,13 +87,13 @@ def load_x(voltage_data, fs, plot=True,
         for voltage_set in voltage_data:
             freq = fft.rfftfreq(len(voltage_set), 1 / fs)
             x_axis[index] = freq
-            activities[index] = voltage_set
+            activities[index] = voltage_set / arduino_IV_CF
             index += 1
     else:
         for voltage_set in voltage_data:
             time = np.arange(0, len(voltage_set) * 1 / fs, 1 / fs)
             x_axis[index] = time
-            activities[index] = voltage_set
+            activities[index] = voltage_set /arduino_IV_CF
             index += 1
     # loads into array, returns for plotting
     if plot:
@@ -102,7 +104,7 @@ def load_x(voltage_data, fs, plot=True,
 
         # Plot each data array on its own subplot
         for i, data_array in enumerate(voltage_data):
-            axs[i].plot(data_array, label=f'Data {i + 1}')
+            axs[i].plot(data_array/arduino_IV_CF, label=f'Data {i + 1}')
             axs[i].set_xlabel('Time')
             axs[i].set_ylabel('Voltage')
             axs[i].legend()
