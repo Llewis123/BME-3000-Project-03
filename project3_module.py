@@ -25,11 +25,11 @@ If you are using numpy, scipy, pandas or matplotlib with your project: you only 
 """
 
 import numpy as np
+from biosppy.signals.ecg import ecg
 from matplotlib import pyplot as plt
 from scipy import fft
 from scipy import signal
 from scipy.signal import butter, lfilter, iirnotch
-from biosppy.signals.ecg import ecg
 from scipy.signal import find_peaks
 
 
@@ -177,6 +177,12 @@ def filter_data(data_set, general=True, all_filters=False, diagnostic=False, mus
 
     # TODO: Do some filtering here
 
+    if general:
+
+        filtered_data_set = np.empty(len(data_set), dtype=object)
+        for i, data_array in enumerate(data_set):
+            filtered_data_set[i] = notch_filter(butterworth_filter(data_array, 500, 150), 30, 500)
+
 
 def getResponses(data, fs=500):
     """
@@ -218,6 +224,7 @@ def calculate_HRV(r_peaks, fs):
     hrv_analysis = biosppy.signals.hrv(rpeaks=r_peaks, sampling_rate=fs, show=False)
     return hrv_analysis
 
+
 def get_HRV_BP(hrv_analysis):
     plt.figure(figsize=(8, 6))
     plt.bar(hrv_analysis['frequency'], hrv_analysis['fft_mag'])
@@ -225,6 +232,7 @@ def get_HRV_BP(hrv_analysis):
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Power')
     plt.show()
+
 
 def detect_heartbeats(ecg_data, fs):
     # Create time array
