@@ -27,7 +27,10 @@ If you are using numpy, scipy, pandas or matplotlib with your project: you only 
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import fft
+from scipy import signal
 from scipy.signal import butter, lfilter, iirnotch
+from biosppy.signals.ecg import ecg
+from scipy.signal import find_peaks
 
 
 def load_data(filename_1, filename_2, filename_3, filename_4):
@@ -172,19 +175,85 @@ def filter_data(data_set, general=True, all_filters=False, diagnostic=False, mus
 
         return filtered_data
 
-# def detect_heartbeats(ecg_data_time, freq_data_time=None plot = True
-#
-# ):
-# here you need filtered ecg_data
-# this function can plot the data.
-# you can input frequency data if you want it too
-
-# returns array of heartbeat_times#
-# return heartbeat_times
+    # TODO: Do some filtering here
 
 
-# def calculate_HRV(ecg_data, plot=False):
-#     return HRV_array, HRV
+def getResponses(data, fs=500):
+    """
+    This function will take a 1D array (1 X N) shape of floats or integers,
+    and can represent
+    :param data:
+    :param fs:
+    :return:
+    """
+    # Create time array
+    t = np.arange(0, len(data) / fs, 1 / fs)
+
+    # Impulse response
+    _, h_t = signal.impulse((data, [1]), T=t[-1])
+
+    # Frequency response
+    f, H_f = signal.freqresp((data, [1]), worN=fft.fftfreq(len(t), 1 / fs))
+
+    # Plotting
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+
+    # Impulse response plot
+    axes[0].plot(t, h_t)
+    axes[0].set_title('Impulse Response')
+    axes[0].set_xlabel('Time (s)')
+    axes[0].set_ylabel('Amplitude')
+
+    # Frequency response plot
+    axes[1].plot(f, np.abs(H_f))
+    axes[1].set_title('Frequency Response')
+    axes[1].set_xlabel('Frequency (Hz)')
+    axes[1].set_ylabel('Magnitude')
+
+    plt.tight_layout()
+    plt.show()
 
 
-# def get_HRV_BP(HRV_array, db=False, bar_plot=True):
+def calculate_HRV(r_peaks, fs):
+    hrv_analysis = biosppy.signals.hrv(rpeaks=r_peaks, sampling_rate=fs, show=False)
+    return hrv_analysis
+
+def get_HRV_BP(hrv_analysis):
+    plt.figure(figsize=(8, 6))
+    plt.bar(hrv_analysis['frequency'], hrv_analysis['fft_mag'])
+    plt.title('HRV Frequency Band Power')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Power')
+    plt.show()
+
+def detect_heartbeats(ecg_data, fs):
+    # Create time array
+    t = np.arange(0, len(ecg_data) / fs, 1 / fs)
+
+    # Process ECG data using biosppy
+    ecg_analysis = ecg(signal=ecg_data, sampling_rate=fs, show=False)
+
+    # Get R-peaks
+    r_peaks, = find_peaks(ecg_analysis['filtered'], height=0.6)
+
+    # Plot ECG and R-peaks
+    plt.figure(figsize=(12, 8))
+    plt.plot(t, ecg_data, label='ECG Signal')
+    plt.plot(t[r_peaks], ecg_data[r_peaks], 'ro', label='R-peaks')
+    plt.title('ECG Signal with R-peaks')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+    plt.legend()
+    plt.show()
+
+    # Calculate HRV
+    hrv_analysis = calculate_HRV(r_peaks, fs)
+
+    # Print HRV parameters
+    print("HRV Analysis:")
+    print(f"Mean RR: {hrv_analysis['mean_rr']} ms")
+    print(f"SDNN: {hrv_analysis['sdnn']} ms")
+    print(f"RMSSD: {hrv_analysis['rmssd']} ms")
+
+    # Get and plot HRV frequency band power
+    get_HRV_BP(hrv_analysis)
