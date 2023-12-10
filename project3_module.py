@@ -38,17 +38,26 @@ arduino_IV_CF = 204.6
 def load_data(filename_1, filename_2, filename_3, filename_4):
     """
     All data must be the same file type
-    This does not load individual columns, that you must do on your own.
+    This does not load individual columns, that you must do on your own, and return as integer arrays.
 
-    :param filename_1:
-    :param filename_2:
-    :param filename_3:
-    :param filename_4:
-    :param plot:
-    :param time:
-    :param freq:
-    :param power:
-    :return:
+    Parameters
+    ----------
+    filename_1 : str
+        path to the first data file.
+    filename_2 : str
+        path to the second data file.
+    filename_3 : str
+        path to the third data file.
+    filename_4 : str
+        path to the fourth data file.
+
+    Returns
+    -------
+    four arrays of int size n,
+      Representing the loaded data for the 5 minutes of the acyivity 
+      from the specified files.
+
+
     """
     # we will load the data and then plot it. It will be able to read in files of .csv, .txt, .npz
     if filename_1.endswith(".txt"):
@@ -76,6 +85,33 @@ def load_data(filename_1, filename_2, filename_3, filename_4):
 
 def load_x(voltage_data, fs, plot=True,
            freq=False, power=False, ):
+    """
+    Load voltage data and provide options for plotting in the time or frequency domain.
+
+
+    Parameters
+    ----------
+    voltage_data : list of numpy arrays
+        List of voltage data arrays.
+    fs : int
+        Sampling frequency of the voltage data.
+    plot : bool, optional
+        Flag to enable or disable plotting. The default is True.
+    freq : bool, optional
+        Flag to indicate whether to plot in the frequency domain. The default is False.
+    power : bool, optional
+        Placeholder parameter. The default is False.
+
+    Returns
+    -------
+    concatenated_data : 1D array of floats size 715996,
+        Concatenated voltage data from all input arrays.
+    x_axis : 1D array od objects size 4,
+        Time or frequency values corresponding to the loaded data.
+    activities : 2d array of objects
+        an array containing the loaded voltage data array of each activity.
+
+    """   
     # takes in array of filenames to load
 
     x_axis = np.empty(len(voltage_data), dtype=object)
