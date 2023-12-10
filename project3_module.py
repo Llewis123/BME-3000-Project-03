@@ -158,35 +158,60 @@ def load_x(voltage_data, fs, plot=True,
 
 def filter_data(data_set, fs, general=True, all_filters=False, diagnostic=False, muscle_noise=False, Ambulatory=False,
                 freq=False, plot=True):
-    """
 
+
+  """
+
+    Apply signal filters to the input data set and provide optional visualization.
 
     Parameters
     ----------
-    data_set : TYPE
-        DESCRIPTION.
-    general : TYPE, optional
-        DESCRIPTION. The default is True.
-    all_filters : TYPE, optional
-        DESCRIPTION. The default is False.
-    diagnostic : TYPE, optional
-        DESCRIPTION. The default is False.
-    muscle_noise : TYPE, optional
-        DESCRIPTION. The default is False.
-    Ambulatory : TYPE, optional
-        DESCRIPTION. The default is False.
-    freq : TYPE, optional
-        DESCRIPTION. The default is False.
-    plot : TYPE, optional
-        DESCRIPTION. The default is True.
+    data_set/activities : 2d array of objects
+        an array containing the loaded voltage data array of each activity.
+    fs : float
+        Sampling frequency of the data.
+    general : bool, optional
+        Flag to apply a general Butterworth high-pass filter. Default is True.
+    all_filters : bool, optional
+        Placeholder parameter. Default is False.
+    diagnostic : bool, optional
+        Placeholder parameter. Default is False.
+    muscle_noise : bool, optional
+        Placeholder parameter. Default is False.
+    Ambulatory : bool, optional
+        Placeholder parameter. Default is False.
+    freq : bool, optional
+        Flag to indicate whether to plot in the frequency domain. Default is False.
+    plot : bool, optional
+        Flag to enable or disable plotting. Default is True.
 
     Returns
     -------
-    None.
+   The filtered data that was chosen, whether it be a butterworth or notch filter.
 
     """
 
     def notch_filter(data, Q, sampling_rate, notch_frequency=60):
+        """
+        Apply a notch filter to the input data.
+
+        Parameters
+        ----------
+        data : numpy array
+            Input data array.
+        Q : float
+            Quality factor for the notch filter.
+        sampling_rate : float
+            Sampling frequency of the data.
+        notch_frequency : float, optional
+            Notch filter frequency. Default is 60.
+
+        Returns
+        -------
+        filtered_data : numpy array
+            Notch-filtered data.
+
+        """
         # Design parameters for the notch filter
         quality_factor = 30.0  # Quality factor for the notch filter
 
@@ -202,6 +227,28 @@ def filter_data(data_set, fs, general=True, all_filters=False, diagnostic=False,
     # scipy.signal.iirnotch(w0, Q, fs=2.0)
 
     def butterworth_filter(data, sampling_rate, cutoff_frequency, order=4, filter_type='low'):
+         """
+        Apply a Butterworth filter to the input data.
+
+        Parameters
+        ----------
+        data : numpy array
+            Input data array.
+        sampling_rate : float
+            Sampling frequency of the data.
+        cutoff_frequency : float
+            Cutoff frequency of the filter.
+        order : int, optional
+            Order of the Butterworth filter. Default is 4.
+        filter_type : str, optional
+            Type of the filter ('low', 'high', etc.). Default is 'low'.
+
+        Returns
+        -------
+        filtered_data : numpy array
+            Butterworth-filtered data.
+
+        """
         # Design parameters for the Butterworth filter
         nyquist_frequency = 0.5 * sampling_rate
         cutoff_frequency_normalized = cutoff_frequency / nyquist_frequency
@@ -227,6 +274,21 @@ def filter_data(data_set, fs, general=True, all_filters=False, diagnostic=False,
 
 
 def get_responses(data, fs=500):
+    """
+    Analyze the impulse and frequency response of the input data.
+
+    Parameters
+    ----------
+    data : numpy array
+        Input data array.
+    fs : float, optional
+        Sampling frequency of the data. Default is 500.
+
+    Returns
+    -------
+    None.
+
+    """
     # Create time array
     T = len(data) / fs
     t = np.arange(0, T, 1/fs)
@@ -292,11 +354,40 @@ def get_responses(data, fs=500):
     plt.show()
 
 def calculate_HRV(r_peaks, fs):
+     """
+   Calculate Heart Rate Variability (HRV) analysis.
+
+   Parameters
+   ----------
+   r_peaks : numpy array
+       R-peak indices extracted from ECG data.
+   fs : float
+       Sampling frequency of the ECG data.
+
+   Returns
+   -------
+   hrv_analysis : dict
+       Dictionary containing HRV analysis results.
+
+   """
     hrv_analysis = biosppy.signals.hrv(rpeaks=r_peaks, sampling_rate=fs, show=False)
     return hrv_analysis
 
 
 def get_HRV_BP(hrv_analysis):
+     """
+    Plot the Heart Rate Variability (HRV) frequency band power.
+
+    Parameters
+    ----------
+    hrv_analysis : dict
+        Dictionary containing HRV analysis results.
+
+    Returns
+    -------
+    None.
+
+    """
     plt.figure(figsize=(8, 6))
     plt.bar(hrv_analysis['frequency'], hrv_analysis['fft_mag'])
     plt.title('HRV Frequency Band Power')
@@ -306,6 +397,21 @@ def get_HRV_BP(hrv_analysis):
 
 
 def detect_heartbeats(ecg_data, fs):
+    """
+    Detect and visualize R-peaks in ECG data, and perform HRV analysis.
+
+    Parameters
+    ----------
+    ecg_data : numpy array
+        Input ECG data.
+    fs : float
+        Sampling frequency of the ECG data.
+
+    Returns
+    -------
+    None.
+
+    """
     # Create time array
     t = np.arange(0, len(ecg_data) / fs, 1 / fs)
 
