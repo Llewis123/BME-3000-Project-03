@@ -24,14 +24,12 @@ If you are using numpy, scipy, pandas or matplotlib with your project: you only 
 
 """
 
-import numpy as np
-from biosppy.signals.ecg import ecg
-from matplotlib import pyplot as plt
-from scipy.fft import rfft, rfftfreq, irfft
-from scipy import signal
-from scipy.signal import butter, lfilter, iirnotch
-from scipy.signal import find_peaks
 import biosppy
+import numpy as np
+from matplotlib import pyplot as plt
+import pyhrv
+from scipy.fft import rfft, rfftfreq, fft
+from scipy.signal import butter, lfilter, iirnotch
 
 arduino_IV_CF = 204.6
 
@@ -67,10 +65,10 @@ def load_data(filename_1, filename_2, filename_3, filename_4):
         activity_3 = np.loadtxt(filename_3)
         activity_4 = np.loadtxt(filename_4)
     elif filename_1.endswith(".csv"):
-        activity_1 = np.loadtxt(filename_1, delimiter=',')
-        activity_2 = np.loadtxt(filename_2, delimiter=',')
-        activity_3 = np.loadtxt(filename_3, delimiter=',')
-        activity_4 = np.loadtxt(filename_4, delimiter=',')
+        activity_1 = np.loadtxt(filename_1, delimiter=",")
+        activity_2 = np.loadtxt(filename_2, delimiter=",")
+        activity_3 = np.loadtxt(filename_3, delimiter=",")
+        activity_4 = np.loadtxt(filename_4, delimiter=",")
     elif filename_1.endswith(".npz"):
         activity_1 = np.load(filename_1)
         activity_2 = np.load(filename_2)
@@ -79,13 +77,19 @@ def load_data(filename_1, filename_2, filename_3, filename_4):
     else:
         return print("Your file is not one of the specified file types.")
 
-    return activity_1, activity_2, activity_3, activity_4
+    return (
+        activity_1 / arduino_IV_CF,
+        activity_2 / arduino_IV_CF,
+        activity_3 / arduino_IV_CF,
+        activity_4 / arduino_IV_CF,
+    )
 
     # it will also be able to plot time or frequency domain (with optional power) if the data is in either domain.
 
 
-def load_x(voltage_data, fs, plot=True,
-           freq=False, power=False, ):
+def load_x(
+    voltage_data, fs, plot=True, freq=False, power=False,
+):
     """
     Load voltage data and provide options for plotting in the time or frequency domain.
 
@@ -112,7 +116,7 @@ def load_x(voltage_data, fs, plot=True,
     activities : 2d array of objects
         an array containing the loaded voltage data array of each activity.
 
-    """   
+    """
     # takes in array of filenames to load
 
     x_axis = np.empty(len(voltage_data), dtype=object)
@@ -124,26 +128,28 @@ def load_x(voltage_data, fs, plot=True,
         for voltage_set in voltage_data:
             freq = fft.rfftfreq(len(voltage_set), 1 / fs)
             x_axis[index] = freq
-            activities[index] = voltage_set / arduino_IV_CF
+            activities[index] = voltage_set
             index += 1
     else:
         for voltage_set in voltage_data:
             time = np.arange(0, len(voltage_set) * 1 / fs, 1 / fs)
             x_axis[index] = time
-            activities[index] = voltage_set / arduino_IV_CF
+            activities[index] = voltage_set
             index += 1
     # loads into array, returns for plotting
     if plot:
         num_subplots = len(voltage_data)
 
         # Create a grid of subplots based on the number of data arrays
-        fig, axs = plt.subplots(num_subplots, 1, figsize=(10, 3 * num_subplots), clear=True)
+        fig, axs = plt.subplots(
+            num_subplots, 1, figsize=(10, 3 * num_subplots), clear=True
+        )
 
         # Plot each data array on its own subplot
         for i, data_array in enumerate(voltage_data):
-            axs[i].plot(data_array / arduino_IV_CF, label=f'Data {i + 1}')
-            axs[i].set_xlabel('Time')
-            axs[i].set_ylabel('Voltage')
+            axs[i].plot(data_array, label=f"Data {i + 1}")
+            axs[i].set_xlabel("Time")
+            axs[i].set_ylabel("Voltage")
             axs[i].legend()
 
         # Adjust layout to prevent subplot overlap
@@ -156,62 +162,46 @@ def load_x(voltage_data, fs, plot=True,
     return concatenated_data, x_axis, activities
 
 
-def filter_data(data_set, fs, general=True, all_filters=False, diagnostic=False, muscle_noise=False, Ambulatory=False,
-                freq=False, plot=True):
+def filter_data(
+    data_set,
+    fs,
+    general=True,
+    all_filters=False,
+    diagnostic=False,
+    muscle_noise=False,
+    Ambulatory=False,
+    freq=False,
+    plot=True,
+):
+    """
 
-
-  """
-
-    Apply signal filters to the input data set and provide optional visualization.
 
     Parameters
     ----------
-    data_set/activities : 2d array of objects
-        an array containing the loaded voltage data array of each activity.
-    fs : float
-        Sampling frequency of the data.
-    general : bool, optional
-        Flag to apply a general Butterworth high-pass filter. Default is True.
-    all_filters : bool, optional
-        Placeholder parameter. Default is False.
-    diagnostic : bool, optional
-        Placeholder parameter. Default is False.
-    muscle_noise : bool, optional
-        Placeholder parameter. Default is False.
-    Ambulatory : bool, optional
-        Placeholder parameter. Default is False.
-    freq : bool, optional
-        Flag to indicate whether to plot in the frequency domain. Default is False.
-    plot : bool, optional
-        Flag to enable or disable plotting. Default is True.
+    data_set : TYPE
+        DESCRIPTION.
+    general : TYPE, optional
+        DESCRIPTION. The default is True.
+    all_filters : TYPE, optional
+        DESCRIPTION. The default is False.
+    diagnostic : TYPE, optional
+        DESCRIPTION. The default is False.
+    muscle_noise : TYPE, optional
+        DESCRIPTION. The default is False.
+    Ambulatory : TYPE, optional
+        DESCRIPTION. The default is False.
+    freq : TYPE, optional
+        DESCRIPTION. The default is False.
+    plot : TYPE, optional
+        DESCRIPTION. The default is True.
 
     Returns
     -------
-   The filtered data that was chosen, whether it be a butterworth or notch filter.
+    None.
 
     """
 
     def notch_filter(data, Q, sampling_rate, notch_frequency=60):
-        """
-        Apply a notch filter to the input data.
-
-        Parameters
-        ----------
-        data : numpy array
-            Input data array.
-        Q : float
-            Quality factor for the notch filter.
-        sampling_rate : float
-            Sampling frequency of the data.
-        notch_frequency : float, optional
-            Notch filter frequency. Default is 60.
-
-        Returns
-        -------
-        filtered_data : numpy array
-            Notch-filtered data.
-
-        """
         # Design parameters for the notch filter
         quality_factor = 30.0  # Quality factor for the notch filter
 
@@ -226,29 +216,9 @@ def filter_data(data_set, fs, general=True, all_filters=False, diagnostic=False,
 
     # scipy.signal.iirnotch(w0, Q, fs=2.0)
 
-    def butterworth_filter(data, sampling_rate, cutoff_frequency, order=4, filter_type='low'):
-         """
-        Apply a Butterworth filter to the input data.
-
-        Parameters
-        ----------
-        data : numpy array
-            Input data array.
-        sampling_rate : float
-            Sampling frequency of the data.
-        cutoff_frequency : float
-            Cutoff frequency of the filter.
-        order : int, optional
-            Order of the Butterworth filter. Default is 4.
-        filter_type : str, optional
-            Type of the filter ('low', 'high', etc.). Default is 'low'.
-
-        Returns
-        -------
-        filtered_data : numpy array
-            Butterworth-filtered data.
-
-        """
+    def butterworth_filter(
+        data, sampling_rate, cutoff_frequency, order=4, filter_type="low"
+    ):
         # Design parameters for the Butterworth filter
         nyquist_frequency = 0.5 * sampling_rate
         cutoff_frequency_normalized = cutoff_frequency / nyquist_frequency
@@ -267,43 +237,25 @@ def filter_data(data_set, fs, general=True, all_filters=False, diagnostic=False,
 
         filtered_data_set = np.empty(len(data_set), dtype=object)
         for i, data_array in enumerate(data_set):
-            filtered_data_set[i] = butterworth_filter(butterworth_filter(data_array, fs, 150), fs, 0.05,
-                                                      filter_type='high')
+            filtered_data_set[i] = butterworth_filter(
+                butterworth_filter(data_array, fs, 150), fs, 0.05, filter_type="high"
+            )
 
         return filtered_data_set
 
 
 def get_responses(data, fs=500):
-    """
-    Analyze the impulse and frequency response of the input data.
-
-    Parameters
-    ----------
-    data : numpy array
-        Input data array.
-    fs : float, optional
-        Sampling frequency of the data. Default is 500.
-
-    Returns
-    -------
-    None.
-
-    """
     # Create time array
     T = len(data) / fs
-    t = np.arange(0, T, 1/fs)
+    t = np.arange(0, T, 1 / fs)
 
     # Create frequency array
-    f = rfftfreq(len(data), 1/fs)
+    f = rfftfreq(len(data), 1 / fs)
 
     # Create synthetic filter response
     h_t = np.zeros(len(data))
-    h_t[int(fs/2)] = 1
+    h_t[int(fs / 2)] = 1
     H_f = rfft(h_t)
-
-    # Apply filter to data
-    y_t = np.convolve(data, h_t, mode='same')
-    Y_f = rfft(y_t)
 
     # Plotting
     plt.figure(figsize=(12, 8))
@@ -311,135 +263,65 @@ def get_responses(data, fs=500):
     # Subplot 1: Raw signal in the time domain
     plt.subplot(3, 2, 1)
     plt.plot(t, data)
-    plt.title('Time domain')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Raw signal (A.U.)')
+    plt.title("Time domain")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Raw signal (A.U.)")
 
     # Subplot 2: Raw signal in the frequency domain
     plt.subplot(3, 2, 2)
     plt.plot(f, np.abs(rfft(data)))
-    plt.title('Frequency domain')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Raw signal magnitude (A.U.)')
+    plt.title("Frequency domain")
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Raw signal magnitude (A.U.)")
 
     # Subplot 3: Impulse response of the filter
     plt.subplot(3, 2, 3)
-    plt.plot(t, h_t[:len(t)])
-    plt.title('Impulse response')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Impulse response')
+    plt.plot(t, h_t[: len(t)])
+    plt.title("Impulse response")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Impulse response")
 
     # Subplot 4: Frequency response of the filter
     plt.subplot(3, 2, 4)
     plt.plot(f, np.abs(H_f))
-    plt.title('Frequency response')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Frequency response')
-
-    # Subplot 5: Filtered signal in the time domain
-    plt.subplot(3, 2, 5)
-    plt.plot(t, y_t)
-    plt.title('Filtered signal (Time domain)')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Filtered signal (A.U.)')
-
-    # Subplot 6: Filtered signal in the frequency domain
-    plt.subplot(3, 2, 6)
-    plt.plot(f, np.abs(Y_f))
-    plt.title('Filtered signal (Frequency domain)')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Filtered signal magnitude (A.U.)')
+    plt.title("Frequency response")
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Frequency response")
 
     plt.tight_layout()
     plt.show()
 
-def calculate_HRV(r_peaks, fs):
-     """
-   Calculate Heart Rate Variability (HRV) analysis.
 
-   Parameters
-   ----------
-   r_peaks : numpy array
-       R-peak indices extracted from ECG data.
-   fs : float
-       Sampling frequency of the ECG data.
+def calculate_HRV(signal, fs):
+    # Get R-peaks series using biosppy
+    t, filtered_signal, rpeaks = biosppy.signals.ecg.ecg(signal, show=False)[:3]
 
-   Returns
-   -------
-   hrv_analysis : dict
-       Dictionary containing HRV analysis results.
+    # Compute NNI series
+    nni = pyhrv.tools.nn_intervals(t[rpeaks])
 
-   """
-    hrv_analysis = biosppy.signals.hrv(rpeaks=r_peaks, sampling_rate=fs, show=False)
-    return hrv_analysis
+    rpeaks_results = pyhrv.hrv(rpeaks=t[rpeaks])
+    return rpeaks_results
 
 
 def get_HRV_BP(hrv_analysis):
-     """
-    Plot the Heart Rate Variability (HRV) frequency band power.
-
-    Parameters
-    ----------
-    hrv_analysis : dict
-        Dictionary containing HRV analysis results.
-
-    Returns
-    -------
-    None.
-
-    """
     plt.figure(figsize=(8, 6))
-    plt.bar(hrv_analysis['frequency'], hrv_analysis['fft_mag'])
-    plt.title('HRV Frequency Band Power')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Power')
+    plt.bar(hrv_analysis["frequency"], hrv_analysis["fft_mag"])
+    plt.title("HRV Frequency Band Power")
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Power")
     plt.show()
 
 
 def detect_heartbeats(ecg_data, fs):
-    """
-    Detect and visualize R-peaks in ECG data, and perform HRV analysis.
-
-    Parameters
-    ----------
-    ecg_data : numpy array
-        Input ECG data.
-    fs : float
-        Sampling frequency of the ECG data.
-
-    Returns
-    -------
-    None.
-
-    """
     # Create time array
     t = np.arange(0, len(ecg_data) / fs, 1 / fs)
 
     # Process ECG data using biosppy
-    ecg_analysis = ecg(signal=ecg_data, sampling_rate=fs, show=False)
-
-    # Get R-peaks
-    r_peaks = find_peaks(ecg_analysis['filtered'], height=0.6)
-    print(r_peaks[0])
-    # Plot ECG and R-peaks
-    plt.figure(figsize=(12, 8))
-    plt.plot(t, ecg_data, label='ECG Signal')
-    plt.plot(t[r_peaks[0]], ecg_data[r_peaks[0]], 'ro', label='R-peaks')
-    plt.title('ECG Signal with R-peaks')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Amplitude')
-    plt.legend()
-    plt.show()
+    ts, filtered, rpeaks, templates_ts, templates, heart_rate_ts, heart_rate = biosppy.signals.ecg.ecg(
+        signal=ecg_data, sampling_rate=fs, show=True
+    )
 
     # Calculate HRV
-    hrv_analysis = calculate_HRV(r_peaks[0], fs)
+    # hrv_analysis = calculate_HRV(ecg_data, fs)
 
-    # Print HRV parameters
-    print("HRV Analysis:")
-    print(f"Mean RR: {hrv_analysis['mean_rr']} ms")
-    print(f"SDNN: {hrv_analysis['sdnn']} ms")
-    print(f"RMSSD: {hrv_analysis['rmssd']} ms")
-
-    # Get and plot HRV frequency band power
-    get_HRV_BP(hrv_analysis)
-    return r_peaks, hrv_analysis
+    return ts, filtered, rpeaks, templates_ts, templates, heart_rate_ts, heart_rate
