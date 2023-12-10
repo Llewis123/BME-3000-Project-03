@@ -19,7 +19,13 @@ plt.xlabel('Time (s)')
 plt.ylabel('Raw Data')
 plt.title('Concatenated Activities')
 plt.grid()
+filtered = p3m.filter_data(activities, 500)
+time = np.arange(0, len(filtered[0])* 1/fs, 1/fs)
+plt.plot(time, filtered[0])
+plt.show()
+
+p3m.get_responses(filtered[0],500)
 
 
-hrv_analysis = p3m.calculate_HRV(r_peaks, fs)
+p3m.detect_heartbeats(activity_1, fs)
 

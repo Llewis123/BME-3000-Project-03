@@ -27,14 +27,15 @@ If you are using numpy, scipy, pandas or matplotlib with your project: you only 
 import numpy as np
 from biosppy.signals.ecg import ecg
 from matplotlib import pyplot as plt
-from scipy import fft
+from scipy.fft import rfft, rfftfreq, irfft
 from scipy import signal
 from scipy.signal import butter, lfilter, iirnotch
 from scipy.signal import find_peaks
 import biosppy
 
-
 arduino_IV_CF = 204.6
+
+
 def load_data(filename_1, filename_2, filename_3, filename_4):
     """
     All data must be the same file type
@@ -129,7 +130,7 @@ def load_x(voltage_data, fs, plot=True,
         for voltage_set in voltage_data:
             time = np.arange(0, len(voltage_set) * 1 / fs, 1 / fs)
             x_axis[index] = time
-            activities[index] = voltage_set /arduino_IV_CF
+            activities[index] = voltage_set / arduino_IV_CF
             index += 1
     # loads into array, returns for plotting
     if plot:
@@ -140,7 +141,7 @@ def load_x(voltage_data, fs, plot=True,
 
         # Plot each data array on its own subplot
         for i, data_array in enumerate(voltage_data):
-            axs[i].plot(data_array/arduino_IV_CF, label=f'Data {i + 1}')
+            axs[i].plot(data_array / arduino_IV_CF, label=f'Data {i + 1}')
             axs[i].set_xlabel('Time')
             axs[i].set_ylabel('Voltage')
             axs[i].legend()
@@ -219,45 +220,76 @@ def filter_data(data_set, fs, general=True, all_filters=False, diagnostic=False,
 
         filtered_data_set = np.empty(len(data_set), dtype=object)
         for i, data_array in enumerate(data_set):
-            filtered_data_set[i] = butterworth_filter(butterworth_filter(data_array, fs, 150), fs, 0.05, filter_type='high')
+            filtered_data_set[i] = butterworth_filter(butterworth_filter(data_array, fs, 150), fs, 0.05,
+                                                      filter_type='high')
+
+        return filtered_data_set
 
 
-
-def getResponses(data, fs=500):
-    """
-    This function will take a 1D array (1 X N) shape of floats or integers,
-    and can represent
-    :param data:
-    :param fs:
-    :return:
-    """
+def get_responses(data, fs=500):
     # Create time array
-    t = np.arange(0, len(data) / fs, 1 / fs)
+    T = len(data) / fs
+    t = np.arange(0, T, 1/fs)
 
-    # Impulse response
-    _, h_t = signal.impulse((data, [1]), T=t[-1])
+    # Create frequency array
+    f = rfftfreq(len(data), 1/fs)
 
-    # Frequency response
-    f, H_f = signal.freqresp((data, [1]), worN=fft.fftfreq(len(t), 1 / fs))
+    # Create synthetic filter response
+    h_t = np.zeros(len(data))
+    h_t[int(fs/2)] = 1
+    H_f = rfft(h_t)
+
+    # Apply filter to data
+    y_t = np.convolve(data, h_t, mode='same')
+    Y_f = rfft(y_t)
 
     # Plotting
-    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+    plt.figure(figsize=(12, 8))
 
-    # Impulse response plot
-    axes[0].plot(t, h_t)
-    axes[0].set_title('Impulse Response')
-    axes[0].set_xlabel('Time (s)')
-    axes[0].set_ylabel('Amplitude')
+    # Subplot 1: Raw signal in the time domain
+    plt.subplot(3, 2, 1)
+    plt.plot(t, data)
+    plt.title('Time domain')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Raw signal (A.U.)')
 
-    # Frequency response plot
-    axes[1].plot(f, np.abs(H_f))
-    axes[1].set_title('Frequency Response')
-    axes[1].set_xlabel('Frequency (Hz)')
-    axes[1].set_ylabel('Magnitude')
+    # Subplot 2: Raw signal in the frequency domain
+    plt.subplot(3, 2, 2)
+    plt.plot(f, np.abs(rfft(data)))
+    plt.title('Frequency domain')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Raw signal magnitude (A.U.)')
+
+    # Subplot 3: Impulse response of the filter
+    plt.subplot(3, 2, 3)
+    plt.plot(t, h_t[:len(t)])
+    plt.title('Impulse response')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Impulse response')
+
+    # Subplot 4: Frequency response of the filter
+    plt.subplot(3, 2, 4)
+    plt.plot(f, np.abs(H_f))
+    plt.title('Frequency response')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Frequency response')
+
+    # Subplot 5: Filtered signal in the time domain
+    plt.subplot(3, 2, 5)
+    plt.plot(t, y_t)
+    plt.title('Filtered signal (Time domain)')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Filtered signal (A.U.)')
+
+    # Subplot 6: Filtered signal in the frequency domain
+    plt.subplot(3, 2, 6)
+    plt.plot(f, np.abs(Y_f))
+    plt.title('Filtered signal (Frequency domain)')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Filtered signal magnitude (A.U.)')
 
     plt.tight_layout()
     plt.show()
-
 
 def calculate_HRV(r_peaks, fs):
     hrv_analysis = biosppy.signals.hrv(rpeaks=r_peaks, sampling_rate=fs, show=False)
@@ -281,12 +313,12 @@ def detect_heartbeats(ecg_data, fs):
     ecg_analysis = ecg(signal=ecg_data, sampling_rate=fs, show=False)
 
     # Get R-peaks
-    r_peaks, = find_peaks(ecg_analysis['filtered'], height=0.6)
-
+    r_peaks = find_peaks(ecg_analysis['filtered'], height=0.6)
+    print(r_peaks[0])
     # Plot ECG and R-peaks
     plt.figure(figsize=(12, 8))
     plt.plot(t, ecg_data, label='ECG Signal')
-    plt.plot(t[r_peaks], ecg_data[r_peaks], 'ro', label='R-peaks')
+    plt.plot(t[r_peaks[0]], ecg_data[r_peaks[0]], 'ro', label='R-peaks')
     plt.title('ECG Signal with R-peaks')
     plt.xlabel('Time (s)')
     plt.ylabel('Amplitude')
@@ -294,7 +326,7 @@ def detect_heartbeats(ecg_data, fs):
     plt.show()
 
     # Calculate HRV
-    hrv_analysis = calculate_HRV(r_peaks, fs)
+    hrv_analysis = calculate_HRV(r_peaks[0], fs)
 
     # Print HRV parameters
     print("HRV Analysis:")
@@ -304,3 +336,4 @@ def detect_heartbeats(ecg_data, fs):
 
     # Get and plot HRV frequency band power
     get_HRV_BP(hrv_analysis)
+    return r_peaks, hrv_analysis
