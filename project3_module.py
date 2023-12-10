@@ -27,8 +27,8 @@ If you are using numpy, scipy, pandas or matplotlib with your project: you only 
 import biosppy
 import numpy as np
 from matplotlib import pyplot as plt
-import pyhrv
-from scipy.fft import rfft, rfftfreq, fft
+from scipy import signal
+from scipy.fft import fft
 from scipy.signal import butter, lfilter, iirnotch
 
 arduino_IV_CF = 204.6
@@ -201,14 +201,15 @@ def filter_data(
 
     """
 
-    def notch_filter(data, Q, sampling_rate, notch_frequency=60):
+    def notch_filter(data, Q, sampling_rate, notch_frequency=60, coe=False):
         # Design parameters for the notch filter
         quality_factor = 30.0  # Quality factor for the notch filter
 
         # Calculate notch filter coefficients
         notch_frequency_normalized = notch_frequency / (0.5 * sampling_rate)
         b, a = iirnotch(notch_frequency_normalized, quality_factor, sampling_rate)
-
+        if coe:
+            return b, a
         # Apply the notch filter to the data
         filtered_data = lfilter(b, a, data)
 
@@ -217,7 +218,7 @@ def filter_data(
     # scipy.signal.iirnotch(w0, Q, fs=2.0)
 
     def butterworth_filter(
-        data, sampling_rate, cutoff_frequency, order=4, filter_type="low"
+        data, sampling_rate, cutoff_frequency, order=4, filter_type="low", coe=False
     ):
         # Design parameters for the Butterworth filter
         nyquist_frequency = 0.5 * sampling_rate
@@ -225,7 +226,8 @@ def filter_data(
 
         # Design the Butterworth filter
         b, a = butter(order, cutoff_frequency_normalized, btype=filter_type)
-
+        if coe:
+            return b, a
         # Apply the Butterworth filter to the data
         filtered_data = lfilter(b, a, data)
 
@@ -240,67 +242,82 @@ def filter_data(
             filtered_data_set[i] = butterworth_filter(
                 butterworth_filter(data_array, fs, 150), fs, 0.05, filter_type="high"
             )
+        b, a = butterworth_filter(data_array[0], fs, 150, coe=True)
+        b2, a2 = butterworth_filter(
+            data_array[0], fs, 0.05, coe=True, filter_type="high"
+        )
 
-        return filtered_data_set
+        return filtered_data_set, b, a, b2, a2
 
-
-def get_responses(data, fs=500):
-    # Create time array
-    T = len(data) / fs
-    t = np.arange(0, T, 1 / fs)
-
-    # Create frequency array
-    f = rfftfreq(len(data), 1 / fs)
-
-    # Create synthetic filter response
-    h_t = np.zeros(len(data))
-    h_t[int(fs / 2)] = 1
-    H_f = rfft(h_t)
-
-    # Plotting
-    plt.figure(figsize=(12, 8))
-
-    # Subplot 1: Raw signal in the time domain
-    plt.subplot(3, 2, 1)
-    plt.plot(t, data)
-    plt.title("Time domain")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Raw signal (A.U.)")
-
-    # Subplot 2: Raw signal in the frequency domain
-    plt.subplot(3, 2, 2)
-    plt.plot(f, np.abs(rfft(data)))
-    plt.title("Frequency domain")
-    plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Raw signal magnitude (A.U.)")
-
-    # Subplot 3: Impulse response of the filter
-    plt.subplot(3, 2, 3)
-    plt.plot(t, h_t[: len(t)])
-    plt.title("Impulse response")
-    plt.xlabel("Time (s)")
-    plt.ylabel("Impulse response")
-
-    # Subplot 4: Frequency response of the filter
-    plt.subplot(3, 2, 4)
-    plt.plot(f, np.abs(H_f))
-    plt.title("Frequency response")
-    plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Frequency response")
-
-    plt.tight_layout()
-    plt.show()
+def plot_domains(data, fs):
 
 
-def calculate_HRV(signal, fs):
-    # Get R-peaks series using biosppy
-    t, filtered_signal, rpeaks = biosppy.signals.ecg.ecg(signal, show=False)[:3]
 
-    # Compute NNI series
-    nni = pyhrv.tools.nn_intervals(t[rpeaks])
 
-    rpeaks_results = pyhrv.hrv(rpeaks=t[rpeaks])
-    return rpeaks_results
+
+
+def plot_filter_response(b, a, b2=None, a2=None):
+
+    # check to see if this is a cascaded filter (only two allowed)
+    if len(b2) != 0:
+        # Compute the impulse response of the cascaded system
+        b_cascaded = signal.convolve(b, b2)
+        a_cascaded = signal.convolve(a, a2)
+        _, h_t_cascaded = signal.impulse((b_cascaded, a_cascaded))
+
+        # Compute the frequency response of the cascaded system
+        f_cascaded, H_f_cascaded = signal.freqz(b_cascaded, a_cascaded, worN=8000)
+
+        # Plot the impulse response of the cascaded system
+        plt.subplot(2, 1, 1)
+        plt.plot(h_t_cascaded)
+        plt.title("Impulse Response of Cascaded System")
+        plt.xlabel("Time")
+        plt.ylabel("Amplitude")
+
+        plt.subplot(2, 1, 2)
+        plt.plot(f_cascaded, np.abs(H_f_cascaded))
+        plt.title("Frequency Response of Cascaded System")
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("Magnitude")
+
+        plt.tight_layout()
+        plt.show()
+    else:
+        # Compute the impulse response
+        _, h_t = signal.impulse((b, a))
+
+        # Compute the time domain response for a unit step input
+        t, y_t = signal.step((b, a))
+
+        # Compute the frequency response
+        w, H = signal.freqresp((b, a))
+
+        # Plot the impulse response
+        plt.figure(figsize=(12, 6))
+
+        plt.subplot(3, 1, 1)
+        plt.plot(h_t)
+        plt.title("Impulse Response")
+        plt.xlabel("Time")
+        plt.ylabel("Amplitude")
+
+        # Plot the time domain response
+        plt.subplot(3, 1, 2)
+        plt.plot(t, y_t)
+        plt.title("Time Domain Response (Step Input)")
+        plt.xlabel("Time")
+        plt.ylabel("Amplitude")
+
+        # Plot the frequency response
+        plt.subplot(3, 1, 3)
+        plt.plot(w, np.abs(H))
+        plt.title("Frequency Response")
+        plt.xlabel("Frequency (rad/s)")
+        plt.ylabel("Magnitude")
+
+        plt.tight_layout()
+        plt.show()
 
 
 def get_HRV_BP(hrv_analysis):
@@ -312,16 +329,30 @@ def get_HRV_BP(hrv_analysis):
     plt.show()
 
 
-def detect_heartbeats(ecg_data, fs):
+def detect_heartbeats(ecg_data, fs, plot=False):
     # Create time array
-    t = np.arange(0, len(ecg_data) / fs, 1 / fs)
-
+    show = False
+    if plot:
+        show = True
     # Process ECG data using biosppy
-    ts, filtered, rpeaks, templates_ts, templates, heart_rate_ts, heart_rate = biosppy.signals.ecg.ecg(
-        signal=ecg_data, sampling_rate=fs, show=True
-    )
-
+    (
+        ts,
+        filtered,
+        rpeaks,
+        templates_ts,
+        templates,
+        heart_rate_ts,
+        heart_rate,
+    ) = biosppy.signals.ecg.ecg(signal=ecg_data, sampling_rate=fs, show=show)
+    hrv = np.std(np.diff(ts[rpeaks]))
     # Calculate HRV
-    # hrv_analysis = calculate_HRV(ecg_data, fs)
-
-    return ts, filtered, rpeaks, templates_ts, templates, heart_rate_ts, heart_rate
+    return (
+        ts,
+        filtered,
+        rpeaks,
+        templates_ts,
+        templates,
+        heart_rate_ts,
+        heart_rate,
+        hrv
+    )
