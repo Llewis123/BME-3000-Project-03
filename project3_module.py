@@ -27,14 +27,12 @@ If you are using numpy, scipy, pandas or matplotlib with your project: you only 
 import biosppy
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy import signal
-from scipy.fft import fft
-from scipy.signal import butter, lfilter, iirnotch
+from scipy import signal, fft
 
 arduino_IV_CF = 204.6
 
 
-def load_data(filename_1, filename_2, filename_3, filename_4):
+def load_data(filename_1, filename_2, filename_3, filename_4, fs):
     """
     All data must be the same file type
     This does not load individual columns, that you must do on your own, and return as integer arrays.
@@ -76,12 +74,12 @@ def load_data(filename_1, filename_2, filename_3, filename_4):
         activity_4 = np.load(filename_4)
     else:
         return print("Your file is not one of the specified file types.")
-
+    # returns changed so they get from 5 seconds in to 300 seconds in
     return (
-        activity_1 / arduino_IV_CF,
-        activity_2 / arduino_IV_CF,
-        activity_3 / arduino_IV_CF,
-        activity_4 / arduino_IV_CF,
+        activity_1[5*fs:300*fs] / arduino_IV_CF,
+        activity_2[5*fs:300*fs] / arduino_IV_CF,
+        activity_3[5*fs:300*fs] / arduino_IV_CF,
+        activity_4[5*fs:300*fs] / arduino_IV_CF,
     )
 
     # it will also be able to plot time or frequency domain (with optional power) if the data is in either domain.
@@ -201,37 +199,10 @@ def filter_data(
 
     """
 
-    def notch_filter(data, Q, sampling_rate, notch_frequency=60, coe=False):
-        # Design parameters for the notch filter
-        quality_factor = 30.0  # Quality factor for the notch filter
-
-        # Calculate notch filter coefficients
-        notch_frequency_normalized = notch_frequency / (0.5 * sampling_rate)
-        b, a = iirnotch(notch_frequency_normalized, quality_factor, sampling_rate)
-        if coe:
-            return b, a
-        # Apply the notch filter to the data
-        filtered_data = lfilter(b, a, data)
-
-        return filtered_data
-
-    # scipy.signal.iirnotch(w0, Q, fs=2.0)
-
-    def butterworth_filter(
-        data, sampling_rate, cutoff_frequency, order=4, filter_type="low", coe=False
-    ):
-        # Design parameters for the Butterworth filter
-        nyquist_frequency = 0.5 * sampling_rate
-        cutoff_frequency_normalized = cutoff_frequency / nyquist_frequency
-
-        # Design the Butterworth filter
-        b, a = butter(order, cutoff_frequency_normalized, btype=filter_type)
-        if coe:
-            return b, a
-        # Apply the Butterworth filter to the data
-        filtered_data = lfilter(b, a, data)
-
-        return filtered_data
+    def filter(data, numtaps, fc, fs, window='hann'):
+        h_t = signal.firwin(numtaps, fc, window=window, fs=fs, pass_zero=False)
+        filtered = np.convolve(data, h_t, mode='same')
+        return filtered, h_t
 
     # TODO: Do some filtering here
 
@@ -239,18 +210,35 @@ def filter_data(
 
         filtered_data_set = np.empty(len(data_set), dtype=object)
         for i, data_array in enumerate(data_set):
-            filtered_data_set[i] = butterworth_filter(
-                butterworth_filter(data_array, fs, 150), fs, 0.05, filter_type="high"
-            )
-        b, a = butterworth_filter(data_array[0], fs, 150, coe=True)
-        b2, a2 = butterworth_filter(
-            data_array[0], fs, 0.05, coe=True, filter_type="high"
-        )
-
-        return filtered_data_set, b, a, b2, a2
+            filtered_data_set[i],h_t = filter(data_array,51, [0.1,45], 500)
+        return filtered_data_set
 
 def plot_domains(data, fs):
+    # Calculate time array
+    t = np.arange(0, len(data) / fs, 1 / fs)
 
+    # Calculate frequency array
+    f = fft.rfftfreq(len(data), 1 / fs)
+
+    # Calculate Fourier transform of the data
+    data_fft = fft.rfft(data)
+
+    # Plot in the time domain
+    plt.figure(figsize=(12, 6))
+    plt.subplot(2, 1, 1)
+    plt.plot(t, data)
+    plt.title('Time Domain')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+
+    # Plot in the frequency domain
+    plt.subplot(2, 1, 2)
+    plt.plot(f, np.abs(data_fft))
+    plt.title('Frequency Domain')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Amplitude Spectrum')
+
+    plt.tight_layout()
 
 
 
@@ -282,7 +270,6 @@ def plot_filter_response(b, a, b2=None, a2=None):
         plt.ylabel("Magnitude")
 
         plt.tight_layout()
-        plt.show()
     else:
         # Compute the impulse response
         _, h_t = signal.impulse((b, a))
@@ -317,7 +304,6 @@ def plot_filter_response(b, a, b2=None, a2=None):
         plt.ylabel("Magnitude")
 
         plt.tight_layout()
-        plt.show()
 
 
 def get_HRV_BP(hrv_analysis):
@@ -326,7 +312,6 @@ def get_HRV_BP(hrv_analysis):
     plt.title("HRV Frequency Band Power")
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("Power")
-    plt.show()
 
 
 def detect_heartbeats(ecg_data, fs, plot=False):
