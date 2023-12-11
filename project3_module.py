@@ -172,34 +172,59 @@ def filter_data(
     plot=True,
 ):
     """
-
+    Apply signal filters to the input data set and provide optional visualization.
 
     Parameters
     ----------
-    data_set : TYPE
-        DESCRIPTION.
-    general : TYPE, optional
-        DESCRIPTION. The default is True.
-    all_filters : TYPE, optional
-        DESCRIPTION. The default is False.
-    diagnostic : TYPE, optional
-        DESCRIPTION. The default is False.
-    muscle_noise : TYPE, optional
-        DESCRIPTION. The default is False.
-    Ambulatory : TYPE, optional
-        DESCRIPTION. The default is False.
-    freq : TYPE, optional
-        DESCRIPTION. The default is False.
-    plot : TYPE, optional
-        DESCRIPTION. The default is True.
+    data_set : list of arrays
+        List of data arrays to be filtered.
+    fs : float
+        Sampling frequency of the data.
+    general : bool, optional
+        Flag to apply a general FIR filter. Default is True.
+    all_filters : bool, optional
+        Placeholder parameter. Default is False.
+    diagnostic : bool, optional
+        Placeholder parameter. Default is False.
+    muscle_noise : bool, optional
+        Placeholder parameter. Default is False.
+    Ambulatory : bool, optional
+        Placeholder parameter. Default is False.
+    freq : bool, optional
+        Flag to indicate whether to plot in the frequency domain. Default is False.
+    plot : bool, optional
+        Flag to enable or disable plotting. Default is True.
 
     Returns
     -------
-    None.
-
+    filtered_data_set : list of arrays
+        List of filtered data arrays.
     """
-
+    
     def filter(data, numtaps, fc, fs, window='hann'):
+        """
+        Apply a FIR filter to the input data.
+
+        Parameters
+        ----------
+        data : array
+            Input data array.
+        numtaps : int
+            Number of taps (filter order).
+        fc : list or float
+            Cutoff frequency or frequencies.
+        fs : float
+            Sampling frequency of the data.
+        window : str, optional
+            Type of window to use. Default is 'hann'.
+
+        Returns
+        -------
+        filtered_data : array
+            FIR-filtered data.
+        h_t : array
+            Impulse response of the filter.
+        """
         h_t = signal.firwin(numtaps, fc, window=window, fs=fs, pass_zero=False)
         filtered = np.convolve(data, h_t, mode='same')
         return filtered, h_t
@@ -214,6 +239,20 @@ def filter_data(
         return filtered_data_set
 
 def plot_domains(data, fs):
+    """
+    Plot time and frequency domains of the input data.
+
+    Parameters
+    ----------
+    data : array
+        Input data array.
+    fs : float
+        Sampling frequency of the data.
+
+    Returns
+    -------
+    None.
+    """
     # Calculate time array
     t = np.arange(0, len(data) / fs, 1 / fs)
 
@@ -245,6 +284,20 @@ def plot_domains(data, fs):
 
 
 def plot_filter_response(b, a, b2=None, a2=None):
+    """
+    Plot impulse and frequency response of the filter.
+
+    Parameters
+    ----------
+    b, a : arrays
+        Numerator and denominator coefficients of the filter.
+    b2, a2 : arrays, optional
+        Second set of coefficients for cascaded filters.
+
+    Returns
+    -------
+    None.
+    """
 
     # check to see if this is a cascaded filter (only two allowed)
     if len(b2) != 0:
@@ -307,6 +360,18 @@ def plot_filter_response(b, a, b2=None, a2=None):
 
 
 def get_HRV_BP(hrv_analysis):
+    """
+    Plot Heart Rate Variability (HRV) frequency band power.
+
+    Parameters
+    ----------
+    hrv_analysis : dict
+        Dictionary containing HRV analysis results.
+
+    Returns
+    -------
+    None.
+    """
     plt.figure(figsize=(8, 6))
     plt.bar(hrv_analysis["frequency"], hrv_analysis["fft_mag"])
     plt.title("HRV Frequency Band Power")
@@ -315,6 +380,39 @@ def get_HRV_BP(hrv_analysis):
 
 
 def detect_heartbeats(ecg_data, fs, plot=False):
+    """
+     Detect and visualize R-peaks in ECG data, and perform HRV analysis.
+
+
+    Parameters
+    ----------
+    ecg_data : Array
+        the inpur of the ECG data.
+    fs : int
+        Sampling frequenct of the ECG data.
+    plot : bool, optional
+        Flag to enable or disable plotting. Default is False.
+
+    Returns
+    -------
+    ts : TYPE
+        DESCRIPTION.
+    filtered : TYPE
+        DESCRIPTION.
+    rpeaks : TYPE
+        DESCRIPTION.
+    templates_ts : TYPE
+        DESCRIPTION.
+    templates : TYPE
+        DESCRIPTION.
+    heart_rate_ts : TYPE
+        DESCRIPTION.
+    heart_rate : TYPE
+        DESCRIPTION.
+    hrv : TYPE
+        Heart Rate Variability response from the ECG analysis.
+
+    """
     # Create time array
     show = False
     if plot:
