@@ -29,7 +29,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy import signal, fft
 
-arduino_IV_CF = 204.6
+arduino_IV_CF = (
+    1023 / 5
+)  # 1023 is the bit resolution of our arduino, 5 is the voltage our arduino 5V pin was outputting
+# divide them by eachother to get a conversion factor that we need to convert the analog signal into our digital one (mV)
 
 
 def load_data(filename_1, filename_2, filename_3, filename_4, fs):
@@ -51,7 +54,7 @@ def load_data(filename_1, filename_2, filename_3, filename_4, fs):
     Returns
     -------
     four arrays of int size n,
-      Representing the loaded data for the 5 minutes of the acyivity 
+      Representing the loaded data for the 5 minutes of the activity
       from the specified files.
 
 
@@ -140,7 +143,12 @@ def load_x(
 
         # Create a grid of subplots based on the number of data arrays
         fig, axs = plt.subplots(
-            num_subplots, 1, figsize=(10, 3 * num_subplots), clear=True
+            num_subplots,
+            1,
+            figsize=(10, 3 * num_subplots),
+            clear=True,
+            num="loadx",
+            sharex="all",
         )
 
         # Plot each data array on its own subplot
@@ -153,24 +161,36 @@ def load_x(
         # Adjust layout to prevent subplot overlap
         plt.tight_layout()
 
-        # Show the plots
-        plt.show()
         # the indexes of the x_axs array matches the indexes of the initial data
         # E.G. the 0th index of voltage data's time array is associated with the 0th index of the x_axs array.
     return concatenated_data, x_axis, activities
 
 
-def filter_data(
-    data_set,
-    fs,
-    general=True,
-    all_filters=False,
-    diagnostic=False,
-    muscle_noise=False,
-    Ambulatory=False,
-    freq=False,
-    plot=True,
-):
+def convert_to_db(fft_result):
+    """
+    convert_to_db will take an fft result and convert it to db units,
+    for the purpose of creating bode plots
+    This is done by taking the magnitude of our function to get the amplitude,
+    and then squaring each amplitude value and normalizing it to max power, while taking
+    the absolute value of it
+
+    :param fft_result: n X 1 array of signed 16 bit floats that represent the result of a fast fourier transform,
+    where n represents the number of amplitude's in the array :return: the power of the fft result, in decibels,
+    an n X 1 array of signed 16 bit floats, where n represents the number of power values in the array
+    """
+
+    # get the max power of the array
+    max_power = max(fft_result) ** 2
+    # find the power_db by taking the log10 of the squared absolute value of the fft_result, divided by our max power
+    # to normalize
+    power_db = 10 * np.log10(
+        np.square(abs(fft_result)) / max_power
+    )  # then multiply by 10
+    # return
+    return power_db
+
+
+def filter_data(data_set, fs, numtaps, fc, btype="bandpass", window="hann"):
     """
     Apply signal filters to the input data set and provide optional visualization.
 
@@ -201,7 +221,7 @@ def filter_data(
         List of filtered data arrays.
     """
 
-    def filter(data, numtaps, fc, fs, window="hann"):
+    def filter(data, numtaps, fc, fs, window, btype):
         """
         Apply a FIR filter to the input data.
 
@@ -225,18 +245,14 @@ def filter_data(
         h_t : array
             Impulse response of the filter.
         """
-        h_t = signal.firwin(numtaps, fc, window=window, fs=fs, pass_zero=False)
+        h_t = signal.firwin(numtaps, fc, window=window, fs=fs, pass_zero=btype)
         filtered = np.convolve(data, h_t, mode="same")
         return filtered, h_t
 
-    # TODO: Do some filtering here
-
-    if general:
-
-        filtered_data_set = np.empty(len(data_set), dtype=object)
-        for i, data_array in enumerate(data_set):
-            filtered_data_set[i], h_t = filter(data_array, 51, [0.1, 45], 500)
-        return filtered_data_set
+    filtered_data_set = np.empty(len(data_set), dtype=object)
+    for i, data_array in enumerate(data_set):
+        filtered_data_set[i], h_t = filter(data_array, numtaps, fc, fs, window, btype)
+    return filtered_data_set, h_t
 
 
 def plot_domains(data, fs):
@@ -264,7 +280,7 @@ def plot_domains(data, fs):
     data_fft = fft.rfft(data)
 
     # Plot in the time domain
-    plt.figure(figsize=(12, 6))
+    plt.figure("domains", figsize=(12, 6), clear=True)
     plt.subplot(2, 1, 1)
     plt.plot(t, data)
     plt.title("Time Domain")
@@ -273,15 +289,30 @@ def plot_domains(data, fs):
 
     # Plot in the frequency domain
     plt.subplot(2, 1, 2)
-    plt.plot(f, np.abs(data_fft))
+    plt.plot(f, convert_to_db(data_fft))
     plt.title("Frequency Domain")
     plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Amplitude Spectrum")
+    plt.ylabel("Power (dB)")
+    plt.xscale("log")
 
     plt.tight_layout()
 
 
-def plot_filter_response(b, a, b2=None, a2=None):
+def get_frequency_response(time_domain, fs, dB=True):
+
+    # Calculate frequency array
+    f = fft.rfftfreq(len(time_domain),1/fs)
+
+    # Calculate Fourier transform of the data
+    if dB:
+        data_fft = convert_to_db(fft.rfft(time_domain))
+    else:
+        data_fft = np.abs(fft.rfft(time_domain)**2)
+
+    return f, data_fft
+
+
+def plot_filter_response(h_t, fs):
     """
     Plot impulse and frequency response of the filter.
 
@@ -297,84 +328,32 @@ def plot_filter_response(b, a, b2=None, a2=None):
     None.
     """
 
-    # check to see if this is a cascaded filter (only two allowed)
-    if len(b2) != 0:
-        # Compute the impulse response of the cascaded system
-        b_cascaded = signal.convolve(b, b2)
-        a_cascaded = signal.convolve(a, a2)
-        _, h_t_cascaded = signal.impulse((b_cascaded, a_cascaded))
+    # create our special time array that centers it so that it goes from -0.5 to 0.5
+    t_filter = np.arange((-1 * len(h_t)) / (2 * fs), len(h_t) / (2 * fs), 1 / fs)
+    # create filter frequecny
+    f_filter = fft.rfftfreq(len(h_t), 1 / fs)
+    H_f = fft.rfft(h_t)
+    plt.figure("Filters", clear=True)
+    # create subplot
+    plt.subplot(1, 2, 1)
+    # Plot impulse response of our filter
+    plt.plot(t_filter, h_t)
+    # annotate data
+    plt.xlabel("Time (s)")
+    plt.ylabel("Impulse response")
+    plt.tight_layout()
+    plt.grid()
 
-        # Compute the frequency response of the cascaded system
-        f_cascaded, H_f_cascaded = signal.freqz(b_cascaded, a_cascaded, worN=8000)
-
-        # Plot the impulse response of the cascaded system
-        plt.subplot(2, 1, 1)
-        plt.plot(h_t_cascaded)
-        plt.title("Impulse Response of Cascaded System")
-        plt.xlabel("Time")
-        plt.ylabel("Amplitude")
-
-        plt.subplot(2, 1, 2)
-        plt.plot(f_cascaded, np.abs(H_f_cascaded))
-        plt.title("Frequency Response of Cascaded System")
-        plt.xlabel("Frequency (Hz)")
-        plt.ylabel("Magnitude")
-
-        plt.tight_layout()
-    else:
-        # Compute the impulse response
-        _, h_t = signal.impulse((b, a))
-
-        # Compute the time domain response for a unit step input
-        t, y_t = signal.step((b, a))
-
-        # Compute the frequency response
-        w, H = signal.freqresp((b, a))
-
-        # Plot the impulse response
-        plt.figure(figsize=(12, 6))
-
-        plt.subplot(3, 1, 1)
-        plt.plot(h_t)
-        plt.title("Impulse Response")
-        plt.xlabel("Time")
-        plt.ylabel("Amplitude")
-
-        # Plot the time domain response
-        plt.subplot(3, 1, 2)
-        plt.plot(t, y_t)
-        plt.title("Time Domain Response (Step Input)")
-        plt.xlabel("Time")
-        plt.ylabel("Amplitude")
-
-        # Plot the frequency response
-        plt.subplot(3, 1, 3)
-        plt.plot(w, np.abs(H))
-        plt.title("Frequency Response")
-        plt.xlabel("Frequency (rad/s)")
-        plt.ylabel("Magnitude")
-
-        plt.tight_layout()
-
-
-def get_HRV_BP(hrv_analysis):
-    """
-    Plot Heart Rate Variability (HRV) frequency band power.
-
-    Parameters
-    ----------
-    hrv_analysis : dict
-        Dictionary containing HRV analysis results.
-
-    Returns
-    -------
-    None.
-    """
-    plt.figure(figsize=(8, 6))
-    plt.bar(hrv_analysis["frequency"], hrv_analysis["fft_mag"])
-    plt.title("HRV Frequency Band Power")
-    plt.xlabel("Frequency (Hz)")
-    plt.ylabel("Power")
+    # create subplot
+    plt.subplot(1, 2, 2)
+    # Plot frequency response of our filter
+    plt.plot(f_filter, convert_to_db(H_f))
+    # annotate data
+    plt.xlabel("Frequency (hz)")
+    plt.ylabel("Power (dB)")
+    plt.grid()
+    plt.xscale("log")
+    plt.tight_layout()
 
 
 def detect_heartbeats(ecg_data, fs, plot=False):
@@ -387,7 +366,7 @@ def detect_heartbeats(ecg_data, fs, plot=False):
     ecg_data : Array
         the inpur of the ECG data.
     fs : int
-        Sampling frequenct of the ECG data.
+        Sampling frequency of the ECG data.
     plot : bool, optional
         Flag to enable or disable plotting. Default is False.
 
@@ -426,6 +405,7 @@ def detect_heartbeats(ecg_data, fs, plot=False):
         heart_rate,
     ) = biosppy.signals.ecg.ecg(signal=ecg_data, sampling_rate=fs, show=plot)
     hrv = np.std(np.diff(ts[rpeaks]))
+    ibi = np.diff(ts[rpeaks])
     # add the values to our dictionary
     ecg_analysis["ts"] = ts
     ecg_analysis["filtered"] = filtered
@@ -435,6 +415,8 @@ def detect_heartbeats(ecg_data, fs, plot=False):
     ecg_analysis["heart_rate_ts"] = heart_rate_ts
     ecg_analysis["heart_rate"] = heart_rate
     ecg_analysis["hrv"] = hrv
+    ecg_analysis["ibi"] = ibi
+
 
     # Calculate HRV
     return ecg_analysis
@@ -462,25 +444,28 @@ def plot_bar(values, categories, title, xlabel="Categories", ylabel="Values"):
     None.
     """
     # Plotting
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(num="bargraph", figsize=(8, 6), clear=True)
 
     # Creating a bar plot
     bars = plt.bar(
-        categories, values, color="skyblue", edgecolor="black", linewidth=1.2
+        categories,
+        values,
+        color=["skyblue", "grey", "red", "purple"],
+        edgecolor="black",
+        linewidth=1.2,
     )
-
     # Adding labels and title
-    plt.xlabel("Categories", fontsize=14)
-    plt.ylabel("Values", fontsize=14)
-    plt.title("Bar Plot Example", fontsize=16)
+    plt.xlabel(xlabel, fontsize=14)
+    plt.ylabel(ylabel, fontsize=14)
+    plt.title(title, fontsize=16)
 
     # Adding data labels on each bar
     for bar in bars:
         yval = bar.get_height()
         plt.text(
             bar.get_x() + bar.get_width() / 2,
-            yval + 0.05,
-            round(yval, 1),
+            yval + 0.02 * max(values),  # Adjusted position for better readability
+            f"{yval:.3f}",  # Formatting to two decimal places
             ha="center",
             va="bottom",
         )
@@ -494,5 +479,3 @@ def plot_bar(values, categories, title, xlabel="Categories", ylabel="Values"):
     # Adjusting layout
     plt.tight_layout()
 
-    # Show the plot
-    plt.show()
