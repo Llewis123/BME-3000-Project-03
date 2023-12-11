@@ -393,21 +393,21 @@ def detect_heartbeats(ecg_data, fs, plot=False):
 
     Returns
     -------
-    ts : TYPE
-        DESCRIPTION.
-    filtered : TYPE
-        DESCRIPTION.
-    rpeaks : TYPE
-        DESCRIPTION.
-    templates_ts : TYPE
-        DESCRIPTION.
-    templates : TYPE
-        DESCRIPTION.
-    heart_rate_ts : TYPE
-        DESCRIPTION.
-    heart_rate : TYPE
-        DESCRIPTION.
-    hrv : TYPE
+    ts : array
+        an array indicating the signal time (s).
+    filtered : array
+        Filtered ECG signal.
+    rpeaks : array
+        the location of the R-peaks.
+    templates_ts : array
+        Time axis reference for templates (s).
+    templates : array
+        Templates of heartbeats.
+    heart_rate_ts : array
+        Time axis reference for heart rate (s).
+    heart_rate : float
+        Instantaneous heart rate (bpm).
+    hrv : int
         Heart Rate Variability response from the ECG analysis.
 
     """
