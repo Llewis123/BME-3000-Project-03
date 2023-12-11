@@ -76,10 +76,10 @@ def load_data(filename_1, filename_2, filename_3, filename_4, fs):
         return print("Your file is not one of the specified file types.")
     # returns changed so they get from 5 seconds in to 300 seconds in
     return (
-        activity_1[5*fs:300*fs] / arduino_IV_CF,
-        activity_2[5*fs:300*fs] / arduino_IV_CF,
-        activity_3[5*fs:300*fs] / arduino_IV_CF,
-        activity_4[5*fs:300*fs] / arduino_IV_CF,
+        activity_1[5 * fs : 300 * fs] / arduino_IV_CF,
+        activity_2[5 * fs : 300 * fs] / arduino_IV_CF,
+        activity_3[5 * fs : 300 * fs] / arduino_IV_CF,
+        activity_4[5 * fs : 300 * fs] / arduino_IV_CF,
     )
 
     # it will also be able to plot time or frequency domain (with optional power) if the data is in either domain.
@@ -200,8 +200,8 @@ def filter_data(
     filtered_data_set : list of arrays
         List of filtered data arrays.
     """
-    
-    def filter(data, numtaps, fc, fs, window='hann'):
+
+    def filter(data, numtaps, fc, fs, window="hann"):
         """
         Apply a FIR filter to the input data.
 
@@ -226,7 +226,7 @@ def filter_data(
             Impulse response of the filter.
         """
         h_t = signal.firwin(numtaps, fc, window=window, fs=fs, pass_zero=False)
-        filtered = np.convolve(data, h_t, mode='same')
+        filtered = np.convolve(data, h_t, mode="same")
         return filtered, h_t
 
     # TODO: Do some filtering here
@@ -235,8 +235,9 @@ def filter_data(
 
         filtered_data_set = np.empty(len(data_set), dtype=object)
         for i, data_array in enumerate(data_set):
-            filtered_data_set[i],h_t = filter(data_array,51, [0.1,45], 500)
+            filtered_data_set[i], h_t = filter(data_array, 51, [0.1, 45], 500)
         return filtered_data_set
+
 
 def plot_domains(data, fs):
     """
@@ -266,21 +267,18 @@ def plot_domains(data, fs):
     plt.figure(figsize=(12, 6))
     plt.subplot(2, 1, 1)
     plt.plot(t, data)
-    plt.title('Time Domain')
-    plt.xlabel('Time (s)')
-    plt.ylabel('Amplitude')
+    plt.title("Time Domain")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
 
     # Plot in the frequency domain
     plt.subplot(2, 1, 2)
     plt.plot(f, np.abs(data_fft))
-    plt.title('Frequency Domain')
-    plt.xlabel('Frequency (Hz)')
-    plt.ylabel('Amplitude Spectrum')
+    plt.title("Frequency Domain")
+    plt.xlabel("Frequency (Hz)")
+    plt.ylabel("Amplitude Spectrum")
 
     plt.tight_layout()
-
-
-
 
 
 def plot_filter_response(b, a, b2=None, a2=None):
@@ -413,10 +411,10 @@ def detect_heartbeats(ecg_data, fs, plot=False):
         Heart Rate Variability response from the ECG analysis.
 
     """
-    # Create time array
-    show = False
-    if plot:
-        show = True
+
+    # Create our empty dictionary
+    ecg_analysis = {}
+
     # Process ECG data using biosppy
     (
         ts,
@@ -426,16 +424,55 @@ def detect_heartbeats(ecg_data, fs, plot=False):
         templates,
         heart_rate_ts,
         heart_rate,
-    ) = biosppy.signals.ecg.ecg(signal=ecg_data, sampling_rate=fs, show=show)
+    ) = biosppy.signals.ecg.ecg(signal=ecg_data, sampling_rate=fs, show=plot)
     hrv = np.std(np.diff(ts[rpeaks]))
+    # add the values to our dictionary
+    ecg_analysis["ts"] = ts
+    ecg_analysis["filtered"] = filtered
+    ecg_analysis["rpeaks"] = rpeaks
+    ecg_analysis["templates_ts"] = templates_ts
+    ecg_analysis["templates"] = templates
+    ecg_analysis["heart_rate_ts"] = heart_rate_ts
+    ecg_analysis["heart_rate"] = heart_rate
+    ecg_analysis["hrv"] = hrv
+
     # Calculate HRV
-    return (
-        ts,
-        filtered,
-        rpeaks,
-        templates_ts,
-        templates,
-        heart_rate_ts,
-        heart_rate,
-        hrv
+    return ecg_analysis
+
+
+def plot_bar(values, categories, title, xlabel="Categories", ylabel="Values"):
+    # Plotting
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Creating a bar plot
+    bars = plt.bar(
+        categories, values, color="skyblue", edgecolor="black", linewidth=1.2
     )
+
+    # Adding labels and title
+    plt.xlabel("Categories", fontsize=14)
+    plt.ylabel("Values", fontsize=14)
+    plt.title("Bar Plot Example", fontsize=16)
+
+    # Adding data labels on each bar
+    for bar in bars:
+        yval = bar.get_height()
+        plt.text(
+            bar.get_x() + bar.get_width() / 2,
+            yval + 0.05,
+            round(yval, 1),
+            ha="center",
+            va="bottom",
+        )
+
+    # Adding gridlines
+    plt.grid(axis="y", linestyle="--", alpha=0.7)
+
+    # Adding legend if needed
+    # plt.legend(['Legend 1', 'Legend 2'], loc='upper right')
+
+    # Adjusting layout
+    plt.tight_layout()
+
+    # Show the plot
+    plt.show()

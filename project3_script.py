@@ -50,16 +50,29 @@ plt.ylabel("Raw Data")
 plt.title("Concatenated Activities")
 plt.grid()
 #%%
-(
-    ts,
-    filtered,
-    rpeaks,
-    templates_ts,
-    templates,
-    heart_rate_ts,
-    heart_rate,
-    hrv,
-) = p3m.detect_heartbeats(activity_4, fs, plot=True)
-p3m.plot_domains(activity_4, fs)
-print(hrv)
+''' 
+Activity 1
+'''
+ecg_analysis_A1= p3m.detect_heartbeats(activity_1, fs, plot=False)
+
+#%%
+'''
+Activity 2
+'''
+ecg_analysis_A2 = p3m.detect_heartbeats(activity_2, fs, plot=False)
+
+#%%
+'''
+Activity 3
+'''
+ecg_analysis_A3 = p3m.detect_heartbeats(activity_3, fs, plot=False)
+
+#%%
+'''
+Activity 4
+'''
+ecg_analysis_A4 = p3m.detect_heartbeats(activity_4, fs, plot=False)
+
+
+
 plt.show()
