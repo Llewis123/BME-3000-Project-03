@@ -441,6 +441,26 @@ def detect_heartbeats(ecg_data, fs, plot=False):
 
 
 def plot_bar(values, categories, title, xlabel="Categories", ylabel="Values"):
+    """
+    Create a bar plot.
+
+    Parameters
+    ----------
+    values : floats
+        Numeric HRV values to be plotted.
+    categories : str
+        labels for the activities on the x-axis.
+    title : str
+        Title of the plot.
+    xlabel : str, 
+        Label for the x-axis. The default is "Categories".
+    ylabel : str, 
+        Label for the y-axis. The default is "Values".
+
+    Returns
+    -------
+    None.
+    """
     # Plotting
     fig, ax = plt.subplots(figsize=(8, 6))
 
