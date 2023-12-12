@@ -128,6 +128,8 @@ ratio_A1 = p3m.plot_frequency_bands(
 
 
 #%%
+# Plotting each activity with the frequency bands from the module
+
 """
 Relaxing activity
 """
@@ -221,6 +223,7 @@ ratio_A4 = p3m.plot_frequency_bands(
 
 
 #%%
+# plot the bar plot for the ratios and HRV values from the module
 """
 HRV Bar plot
 """
