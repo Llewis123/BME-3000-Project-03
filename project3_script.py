@@ -1,3 +1,11 @@
+"""
+ANS Evaluation module
+By Bila Bogre & Lincoln Lewis
+@Llewis123 (github) & @B11LA (github)
+This script runs the HRV analysis on data from various activities. It makes use of a custom module called "project3_module" for data 
+loading, filtering, heartbeat detection, and HRV calculation. For each activity, the script includes visualizations of filtered signals, 
+R-peaks detection, frequency domain analysis, and HRV bar plots.
+"""
 import numpy as np
 from matplotlib import pyplot as plt
 
