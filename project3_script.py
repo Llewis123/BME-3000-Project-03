@@ -15,7 +15,7 @@ activity_1, activity_2, activity_3, activity_4 = p3m.load_data(
 )
 #%%
 concatenated_data, x_axis, activities = p3m.load_x(
-    [activity_1, activity_2, activity_3, activity_4], fs=fs, plot=False
+    [sit_at_rest, relaxing_activity, mentally_stressful, physically_stressful], fs=fs, plot=False
 )
 concatenated_time = np.arange(0, len(concatenated_data) * 1 / fs, 1 / fs)
 
@@ -23,7 +23,7 @@ num_subplots = len(activities)
 
 # Create a grid of subplots based on the number of data arrays
 fig, axs = plt.subplots(num_subplots, 3,num = "Filtered vs normal",  figsize=(4*num_subplots, 8), clear=True, sharex='col')
-time = np.arange(0, len(activity_1) / fs, 1 / fs)
+time = np.arange(0, len(sit_at_rest) / fs, 1 / fs)
 filtered, h_t = p3m.filter_data(activities, fs, 100, [0.04, 0.4, 0.7, 27])
 # Plot each data array on its own subplot
 for index, data_array in enumerate(activities):
@@ -59,13 +59,13 @@ p3m.plot_filter_response(h_t, fs)
 
 #%%
 ''' 
-Activity 1
+Sit at rest
 '''
-ecg_analysis_A1= p3m.detect_heartbeats(activity_1, fs)
+ecg_analysis_A1= p3m.detect_heartbeats(sit_at_rest, fs)
 A1_rpeaks = ecg_analysis_A1['rpeaks']
 A1_filtered = ecg_analysis_A1['filtered']
 plt.figure("A1", figsize=(15,8), clear=True)
-plt.plot(time, A1_filtered, label='Filtered (biosppy) Activity_1 signal')
+plt.plot(time, A1_filtered, label='Filtered (biosppy) sit at rest signal')
 plt.plot(time[A1_rpeaks], A1_filtered[A1_rpeaks], 'x', label='R-peaks')
 plt.title("Activity one signal (filtered) with R-Peaks")
 plt.xlabel('Time (s)')
@@ -85,13 +85,13 @@ ratio_A1 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.
 
 #%%
 '''
-Activity 2
+Relaxing activity
 '''
-ecg_analysis_A2 = p3m.detect_heartbeats(activity_2, fs)
+ecg_analysis_A2 = p3m.detect_heartbeats(relaxing_activity, fs)
 A2_rpeaks = ecg_analysis_A2['rpeaks']
 A2_filtered = ecg_analysis_A2['filtered']
 plt.figure("A2", figsize=(15,8), clear=True)
-plt.plot(time, A2_filtered, label='Filtered (biosppy) Activity_2 signal')
+plt.plot(time, A2_filtered, label='Filtered (biosppy) relaxing activity signal')
 plt.plot(time[A2_rpeaks], A2_filtered[A2_rpeaks], 'x', label='R-peaks')
 plt.title("Activity two signal (filtered) with R-Peaks")
 plt.xlabel('Time (s)')
@@ -110,13 +110,13 @@ ratio_A1 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.
 
 #%%
 '''
-Activity 3
+Mentally stressful
 '''
-ecg_analysis_A3 = p3m.detect_heartbeats(activity_3, fs)
+ecg_analysis_A3 = p3m.detect_heartbeats(mentally_stressful, fs)
 A3_rpeaks = ecg_analysis_A3['rpeaks']
 A3_filtered = ecg_analysis_A3['filtered']
 plt.figure("A3", figsize=(15,8), clear=True)
-plt.plot(time, A3_filtered, label='Filtered (biosppy) Activity_3 signal')
+plt.plot(time, A3_filtered, label='Filtered (biosppy) mentally stressful signal')
 plt.plot(time[A3_rpeaks], A3_filtered[A3_rpeaks], 'x', label='R-peaks')
 plt.title("Activity three signal (filtered) with R-Peaks")
 plt.xlabel('Time (s)')
@@ -125,13 +125,13 @@ plt.legend()
 
 #%%
 '''
-Activity 4
+Physically stressful
 '''
-ecg_analysis_A4 = p3m.detect_heartbeats(activity_4, fs, plot=True)
+ecg_analysis_A4 = p3m.detect_heartbeats(physically_stressful, fs, plot=True)
 A4_rpeaks = ecg_analysis_A4['rpeaks']
 A4_filtered = ecg_analysis_A4['filtered']
 plt.figure("A4", figsize=(15,8), clear=True)
-plt.plot(time, A4_filtered, label='Filtered (biosppy) Activity_4 signal')
+plt.plot(time, A4_filtered, label='Filtered (biosppy) Physically stressful signal')
 plt.plot(time[A4_rpeaks], A4_filtered[A4_rpeaks], 'x', label='R-peaks')
 plt.title("Activity four signal (filtered) with R-Peaks")
 plt.xlabel('Time (s)')
