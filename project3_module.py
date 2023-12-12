@@ -61,29 +61,30 @@ def load_data(filename_1, filename_2, filename_3, filename_4, fs):
     """
     # we will load the data and then plot it. It will be able to read in files of .csv, .txt, .npz
     if filename_1.endswith(".txt"):
-        sit_at_rest = np.loadtxt(filename_1)
-        relaxing_activity = np.loadtxt(filename_2)
-        metally_stressful = np.loadtxt(filename_3)
-        physically_stressful = np.loadtxt(filename_4)
+        activity_1 = np.loadtxt(filename_1)
+        activity_2 = np.loadtxt(filename_2)
+        activity_3 = np.loadtxt(filename_3)
+        activity_4 = np.loadtxt(filename_4)
     elif filename_1.endswith(".csv"):
-        sit_at_rest = np.loadtxt(filename_1, delimiter=",")
-        relaxing_activity = np.loadtxt(filename_2, delimiter=",")
-        metally_stressful = np.loadtxt(filename_3, delimiter=",")
-        physically_stressful = np.loadtxt(filename_4, delimiter=",")
+        activity_1 = np.loadtxt(filename_1, delimiter=",")
+        activity_2 = np.loadtxt(filename_2, delimiter=",")
+        activity_3 = np.loadtxt(filename_3, delimiter=",")
+        activity_4 = np.loadtxt(filename_4, delimiter=",")
     elif filename_1.endswith(".npz"):
-        sit_at_rest = np.load(filename_1)
-        relaxing_activity = np.load(filename_2)
-        metally_stressful = np.load(filename_3)
-        physically_stressful = np.load(filename_4)
+        activity_1 = np.load(filename_1)
+        activity_2 = np.load(filename_2)
+        activity_3 = np.load(filename_3)
+        activity_4 = np.load(filename_4)
     else:
         return print("Your file is not one of the specified file types.")
     # returns changed so they get from 5 seconds in to 300 seconds in
     return (
-        sit_at_rest[5*fs:300*fs] / arduino_IV_CF,
-        relaxing_activity[5*fs:300*fs] / arduino_IV_CF,
-        metally_stressful[5*fs:300*fs] / arduino_IV_CF,
-        physically_stressful[5*fs:300*fs] / arduino_IV_CF,
+        activity_1[5*fs:300*fs] / arduino_IV_CF,
+        activity_2[5*fs:300*fs] / arduino_IV_CF,
+        activity_3[5*fs:300*fs] / arduino_IV_CF,
+        activity_4[5*fs:300*fs] / arduino_IV_CF,
     )
+
 
     # it will also be able to plot time or frequency domain (with optional power) if the data is in either domain.
 
