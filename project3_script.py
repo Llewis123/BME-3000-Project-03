@@ -72,12 +72,15 @@ plt.xlabel('Time (s)')
 plt.ylabel('Voltage (mV)')
 plt.legend()
 
-plt.figure("A1HPV", figsize=(10,8), clear=True)
-time_course = np.arange(0, len(A1_filtered)/ fs, 0.1)
+new_dt = 0.1
+time_course = np.arange(0, len(time)*new_dt, new_dt)
 ibi = ecg_analysis_A1['ibi']
 ibi_interpolated = np.interp(time_course, time[A1_rpeaks][1:], ibi)
 freq_hrv, hrv_mag = p3m.get_frequency_response(ibi_interpolated, fs, dB=False)
-plt.plot(freq_hrv, hrv_mag, label='Filtered (biosppy) Activity_1 signal')
+
+plt.figure("A1HPV", figsize=(10,8), clear=True)
+ratio_A1 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.15, 0.4])
+
 
 
 #%%
@@ -94,6 +97,16 @@ plt.title("Activity two signal (filtered) with R-Peaks")
 plt.xlabel('Time (s)')
 plt.ylabel('Voltage (mV)')
 plt.legend()
+
+time_course = np.arange(0, len(time)*new_dt, new_dt)
+ibi = ecg_analysis_A1['ibi']
+ibi_interpolated = np.interp(time_course, time[A1_rpeaks][1:], ibi)
+freq_hrv, hrv_mag = p3m.get_frequency_response(ibi_interpolated, fs, dB=False)
+
+plt.figure("A1HPV", figsize=(10,8), clear=True)
+ratio_A1 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.15, 0.4])
+
+
 
 #%%
 '''
