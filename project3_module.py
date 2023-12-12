@@ -7,11 +7,17 @@ This module provides novel functions for analyzing and filtering nervous system 
 This was originally designed and used to:
 1. Filter ECG data
 2. Automatically detect heartbeat times
-3. Calculate HRV
+3. Calculate HRV - and various time domain characteristics
 4. Find HRV power in LF and HF frequency bands
 5. Compare LF/HF ratios during periods of relaxation and stress
+Additionally;
+- load data of any type,
+- plot filtered data, next to raw data, next to its frequency domain counterpart
+- plot neat bar graphs
+- find the frequency response of time domain data
+- find the frequency and impulse respnose of a given filter
 
-This module consists of x functions.
+This module consists of 11 functions.
 The first ,load data, can be used to load data of any units (firstly designed for volts)
 of the following file types: .csv, .txt, .npz
 If needed, the function can load data that is in the frequency domain, or time domain.
@@ -30,9 +36,10 @@ from matplotlib import pyplot as plt
 from scipy import signal, fft
 
 arduino_IV_CF = (
-    1023 / 5
+        1023 / 5
 )  # 1023 is the bit resolution of our arduino, 5 is the voltage our arduino 5V pin was outputting
-# divide them by eachother to get a conversion factor that we need to convert the analog signal into our digital one (mV)
+# divide them by eachother to get a conversion factor that we need to convert the analog signal into our digital one
+# (mV)
 
 
 def load_data(filename_1, filename_2, filename_3, filename_4, fs):
@@ -79,17 +86,17 @@ def load_data(filename_1, filename_2, filename_3, filename_4, fs):
         return print("Your file is not one of the specified file types.")
     # returns changed so they get from 5 seconds in to 300 seconds in
     return (
-        activity_1[5*fs:300*fs] / arduino_IV_CF,
-        activity_2[5*fs:300*fs] / arduino_IV_CF,
-        activity_3[5*fs:300*fs] / arduino_IV_CF,
-        activity_4[5*fs:300*fs] / arduino_IV_CF,
+        activity_1[5 * fs:300 * fs] / arduino_IV_CF,
+        activity_2[5 * fs:300 * fs] / arduino_IV_CF,
+        activity_3[5 * fs:300 * fs] / arduino_IV_CF,
+        activity_4[5 * fs:300 * fs] / arduino_IV_CF,
     )
 
     # it will also be able to plot time or frequency domain (with optional power) if the data is in either domain.
 
 
 def load_x(
-    voltage_data, fs, plot=True, freq=False, power=False,
+        voltage_data, fs, plot=True, freq=False,
 ):
     """
     Load voltage data and provide options for plotting in the time or frequency domain.
@@ -98,15 +105,13 @@ def load_x(
     Parameters
     ----------
     voltage_data : list of numpy arrays
-        List of voltage data arrays.
+        List of voltage data arrays, each 1-D arrays of floats
     fs : int
         Sampling frequency of the voltage data.
     plot : bool, optional
         Flag to enable or disable plotting. The default is True.
     freq : bool, optional
         Flag to indicate whether to plot in the frequency domain. The default is False.
-    power : bool, optional
-        Placeholder parameter. The default is False.
 
     Returns
     -------
@@ -115,29 +120,31 @@ def load_x(
     x_axis : 1D array od objects size 4,
         Time or frequency values corresponding to the loaded data.
     activities : 2d array of objects
-        an array containing the loaded voltage data array of each activity.
+        an array containing the loaded voltage data array of each activity, being 1-D numpy arrays of floats.
 
     """
-    # takes in array of filenames to load
-
+    # sets empty  vectors.
     x_axis = np.empty(len(voltage_data), dtype=object)
     activities = np.empty(len(voltage_data), dtype=object)
     concatenated_data = np.concatenate(voltage_data)
 
+    # for indexing.
     index = 0
+    # if frequency, loads in and finds the frequency response right away.
     if freq:
         for voltage_set in voltage_data:
             freq = fft.rfftfreq(len(voltage_set), 1 / fs)
             x_axis[index] = freq
             activities[index] = voltage_set
             index += 1
-    else:
+    else: # otherwise, just time_domain.
         for voltage_set in voltage_data:
             time = np.arange(0, len(voltage_set) * 1 / fs, 1 / fs)
             x_axis[index] = time
             activities[index] = voltage_set
             index += 1
-    # loads into array, returns for plotting
+
+    # plots.
     if plot:
         num_subplots = len(voltage_data)
 
@@ -192,42 +199,32 @@ def convert_to_db(fft_result):
 
 def filter_data(data_set, fs, numtaps, fc, btype="bandpass", window="hann"):
     """
-    Apply signal filters to the input data set and provide optional visualization.
+    Applies a filter to the given data set, using a FIR firwin type filter courtesy of scipy.
+    This was used to filter ecg data filter, thus used with bandpass and hann window as the defaults.
 
     Parameters
     ----------
-    data_set : list of arrays
+    data_set : 3D-array of arrays, first index represents the first activity, can also be 1-D of floats
         List of data arrays to be filtered.
     fs : float
         Sampling frequency of the data.
-    general : bool, optional
-        Flag to apply a general FIR filter. Default is True.
-    all_filters : bool, optional
-        Placeholder parameter. Default is False.
-    diagnostic : bool, optional
-        Placeholder parameter. Default is False.
-    muscle_noise : bool, optional
-        Placeholder parameter. Default is False.
-    Ambulatory : bool, optional
-        Placeholder parameter. Default is False.
-    freq : bool, optional
-        Flag to indicate whether to plot in the frequency domain. Default is False.
-    plot : bool, optional
-        Flag to enable or disable plotting. Default is True.
-
+    numptaps: int
+        Order of the filter, odd number represents an odd numebr of poles,
+        even number represents an even number of poles
     Returns
     -------
     filtered_data_set : list of arrays
-        List of filtered data arrays.
+        List of filtered data arrays, all of the same type that was inputted.
     """
 
     def filter(data, numtaps, fc, fs, window, btype):
         """
-        Apply a FIR filter to the input data.
+        Apply a FIR filter to the input data, based on given inputs
+        It filters it in time_domain, meaning your input must be in time domain
 
         Parameters
         ----------
-        data : array
+        data : 1-D array of floats
             Input data array.
         numtaps : int
             Number of taps (filter order).
@@ -236,20 +233,22 @@ def filter_data(data_set, fs, numtaps, fc, btype="bandpass", window="hann"):
         fs : float
             Sampling frequency of the data.
         window : str, optional
-            Type of window to use. Default is 'hann'.
+            Type of window to use. Available windows can be found on scipy.signal.firwin doc page
+             Default is 'hann'.
 
         Returns
         -------
-        filtered_data : array
+        filtered_data : array of floats
             FIR-filtered data.
-        h_t : array
-            Impulse response of the filter.
+        h_t : array of floats
+            Numerial coefficients of the filter, can be used to plot the impulse response
         """
         h_t = signal.firwin(numtaps, fc, window=window, fs=fs, pass_zero=btype)
         filtered = np.convolve(data, h_t, mode="same")
         return filtered, h_t
 
     filtered_data_set = np.empty(len(data_set), dtype=object)
+    # for each data set, use the in-line helper function to filter the data.
     for i, data_array in enumerate(data_set):
         filtered_data_set[i], h_t = filter(data_array, numtaps, fc, fs, window, btype)
     return filtered_data_set, h_t
@@ -257,12 +256,13 @@ def filter_data(data_set, fs, numtaps, fc, btype="bandpass", window="hann"):
 
 def plot_domains(data, fs):
     """
-    Plot time and frequency domains of the input data.
+   This function takes in a data array and its sampling frequency and plot the
+   different domain (frequency, time).
 
     Parameters
     ----------
-    data : array
-        Input data array.
+    data : 1-D array of floats
+        1-D Input data array.
     fs : float
         Sampling frequency of the data.
 
@@ -271,10 +271,10 @@ def plot_domains(data, fs):
     None.
     """
     # Calculate time array
-    t = np.arange(0, len(data) / fs, 1 / fs)
+    time = np.arange(0, len(data) / fs, 1 / fs)
 
     # Calculate frequency array
-    f = fft.rfftfreq(len(data), 1 / fs)
+    freq = fft.rfftfreq(len(data), 1 / fs)
 
     # Calculate Fourier transform of the data
     data_fft = fft.rfft(data)
@@ -282,14 +282,14 @@ def plot_domains(data, fs):
     # Plot in the time domain
     plt.figure("domains", figsize=(12, 6), clear=True)
     plt.subplot(2, 1, 1)
-    plt.plot(t, data)
+    plt.plot(time, data)
     plt.title("Time Domain")
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
 
     # Plot in the frequency domain
     plt.subplot(2, 1, 2)
-    plt.plot(f, convert_to_db(data_fft))
+    plt.plot(freq, convert_to_db(data_fft))
     plt.title("Frequency Domain")
     plt.xlabel("Frequency (Hz)")
     plt.ylabel("Power (dB)")
@@ -299,17 +299,24 @@ def plot_domains(data, fs):
 
 
 def get_frequency_response(time_domain, fs, dB=True):
+    '''
 
+    :param time_domain: a 1-D array of floats representing a given data array (used for ECG data)
+    :param fs: float representing the sampling frequency of the given filter
+    :param dB: optional, if True, will convert data to decibels, default True.
+    :return: a 1-D array of floats, frequencies, representing the frequencies accosiated with the signal
+            a 1-D array of floats, frrequency_domain, representing either the power in magnitude or the power in decibels
+    '''
     # Calculate frequency array
-    f = fft.rfftfreq(len(time_domain), 1 / fs)
+    frequencies = fft.rfftfreq(len(time_domain), 1 / fs)
 
     # Calculate Fourier transform of the data
-    if dB:
-        data_fft = convert_to_db(fft.rfft(time_domain))
-    else:
-        data_fft = np.abs(np.square(fft.rfft(time_domain)))
-
-    return f, data_fft
+    if dB:  # if we want it in decibels.
+        frequency_domain = convert_to_db(fft.rfft(time_domain))
+    else:  # otherwise, take the magnitude and get the power.
+        frequency_domain = np.abs(np.square(fft.rfft(time_domain)))
+    # return both.
+    return frequencies, frequency_domain
 
 
 def plot_filter_response(h_t, fs):
@@ -318,10 +325,10 @@ def plot_filter_response(h_t, fs):
 
     Parameters
     ----------
-    b, a : arrays
-        Numerator and denominator coefficients of the filter.
-    b2, a2 : arrays, optional
-        Second set of coefficients for cascaded filters.
+    h_t : array of floats representing
+        the coefficients of the given filter
+    fs: float
+        the sampling frequency of the signal, in Hz
 
     Returns
     -------
@@ -359,26 +366,31 @@ def plot_filter_response(h_t, fs):
 def detect_heartbeats(ecg_data, fs, plot=False):
     """
      Detect and visualize R-peaks in ECG data, and perform HRV analysis.
-
+     This module uses biosppy's  ecg.ecg function (which can be compared with above functions)
+     Biosppy is a toolbox for biosignal processing written in Python.
+     Its documentation can be found here: https://biosppy.readthedocs.io/en/stable/
+     It will return a dictionary of teh given input data with important time-domain results.
+     The hrv and ibi were generated based on the biosppys function results as well.
 
     Parameters
     ----------
-    ecg_data : Array
-        the inpur of the ECG data.
-    fs : int
+    ecg_data : 1-D Array of floats
+        the input of the ECG data, in mV.
+    fs : float
         Sampling frequency of the ECG data.
     plot : bool, optional
         Flag to enable or disable plotting. Default is False.
 
     Returns
     -------
-    ts : array
-        an array indicating the signal time (s).
-    filtered : array
-        Filtered ECG signal.
-    rpeaks : array
-        the location of the R-peaks.
-    templates_ts : array
+    ts : 1-D array of floats
+        reference array of time calculated by biosppy based on the sampling frequency,
+         same as the time arrays from the other methods (s).
+    filtered : 1-D array of floats
+        Filtered ECG signal, measured in mV.
+    rpeaks : 1-D array representing
+        the index location of the R-peaks.
+    templates_ts : 1-D array of floats
         Time axis reference for templates (s).
     templates : array
         Templates of heartbeats.
@@ -423,8 +435,9 @@ def detect_heartbeats(ecg_data, fs, plot=False):
 
 def plot_bar(values, categories, title, xlabel="Categories", ylabel="Values"):
     """
-    Create a bar plot.
-
+    Create a bar plot of a given values and categories array,
+    !NOTE: They need to be the same length in order to correctly label each bar plot
+    using matplotlibs plt.bar functions
     Parameters
     ----------
     values : floats
@@ -433,9 +446,9 @@ def plot_bar(values, categories, title, xlabel="Categories", ylabel="Values"):
         labels for the activities on the x-axis.
     title : str
         Title of the plot.
-    xlabel : str, 
+    xlabel : str, Opt
         Label for the x-axis. The default is "Categories".
-    ylabel : str, 
+    ylabel : str, Opt
         Label for the y-axis. The default is "Values".
 
     Returns
@@ -472,43 +485,58 @@ def plot_bar(values, categories, title, xlabel="Categories", ylabel="Values"):
     # Adding gridlines
     plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-    # Adding legend if needed
-    # plt.legend(['Legend 1', 'Legend 2'], loc='upper right')
-
     # Adjusting layout
     plt.tight_layout()
 
 
-#%% part 5
+# %% part 5
 def plot_frequency_bands(
-    freq, fft_power, low_fc_range, high_fc_range, title=None, units="A.U."
+        freq, fft_power, low_fc_range, high_fc_range, title='', ylabel='A.U.'
 ):
+    '''
+    plot_frequency_bands plots two different frequency bands of ecg data based on given inputs.
+    Will fill with orange and blue colors
+    This was used to plot the power of frequency content of an ecg signal, and find the ratio of the
+    lower frequency band to the higher frequency band
 
-    # compute the fft of the signal and the corresponding frequencies for the x axis
+    :param freq: 1-D array of floats that represent frequency range of a given input
+    :param fft_power: 1-D array of floats that represent the fft result of a given input
+    :param low_fc_range: 1-D two index list, tupple or array of floats representing teh desires  lower cutoff frequencyies for plotting
+    :param high_fc_range:1-D two index list, tupple or array of floats representing teh desires  higher cutoff frequencyies for plotting
+    :param title: OPTIONAL string, default is an empty string, represents title of the plots
+    :param ylabel: OPTIONAL string, default is 'A.U.'. Represents y label of the pah pah
+    :return:
+    '''
+    # y limits for purpose
+    lower = -500
+    upper = 8000
 
     # create boolean masks for the frequency bands
     is_low_fc = (freq >= low_fc_range[0]) & (freq <= low_fc_range[1])
     is_high_fc = (freq >= high_fc_range[0]) & (freq <= high_fc_range[1])
 
     # use boolean mask to isolate frequency bands
-    low_fc_fft = fft_power[is_low_fc]
+    # low
     low_fc = freq[is_low_fc]
-    high_fc_fft = fft_power[is_high_fc]
+    low_fc_fft = fft_power[is_low_fc]
+
+    # high
     high_fc = freq[is_high_fc]
+    high_fc_fft = fft_power[is_high_fc]
 
     # plot the fft power of the signal
     plt.plot(freq, fft_power, c="gray", zorder=0)
 
     # plot the frequency bands
-    plt.fill_between(low_fc, np.abs(low_fc_fft), label="low frequecy band")
+    plt.fill_between(low_fc, np.abs(low_fc_fft), label="low frequency band")
     plt.fill_between(high_fc, np.abs(high_fc_fft), label="high frequency band")
 
     # annotate and format plot
     plt.title(title)
-    plt.ylabel(units)
+    plt.ylabel(ylabel)
     plt.xlabel("frequency (Hz)")
     plt.xlim(0, high_fc_range[1])
-    plt.ylim(-500, 8000)
+    plt.ylim(lower, upper)
     plt.legend()
     plt.grid()
 

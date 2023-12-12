@@ -5,6 +5,10 @@ By Bila Bogre & Lincoln Lewis
 This script runs the HRV analysis on data from various activities. It makes use of a custom module called "project3_module" for data 
 loading, filtering, heartbeat detection, and HRV calculation. For each activity, the script includes visualizations of filtered signals, 
 R-peaks detection, frequency domain analysis, and HRV bar plots.
+
+Courtesy biosppy and their beautiful ecg package that was used in this project, at https://biosppy.readthedocs.io/en/stable/
+we used our own filter as well in this, and compared the results as we were curious.
+Ill have to say that our filter is kinda better at lower noise but not wen their is a lot of nosie present.
 """
 import numpy as np
 from matplotlib import pyplot as plt
@@ -12,6 +16,9 @@ from matplotlib import pyplot as plt
 import project3_module as p3m
 
 #%%
+""" 
+PART 1
+"""
 fs = 500
 
 (
@@ -26,16 +33,19 @@ fs = 500
     "data_example/physically_stressful 3.txt",
     500,
 )
-#%%
 concatenated_data, x_axis, activities = p3m.load_x(
     [sit_at_rest, relaxing_activity, mentally_stressful, physically_stressful],
     fs=fs,
     plot=False,
 )
 concatenated_time = np.arange(0, len(concatenated_data) * 1 / fs, 1 / fs)
+#%%
+""" 
+PART 2
+We will plot the filtered and raw signal in one figure here.
+"""
 
 num_subplots = len(activities)
-
 # Create a grid of subplots based on the number of data arrays
 fig, axs = plt.subplots(
     num_subplots,
@@ -45,6 +55,8 @@ fig, axs = plt.subplots(
     clear=True,
     sharex="col",
 )
+# set time arrays, get filtered dataset and h_t
+# because h_t will be the same for each, we don't really care here, in terms of the final return value of h_t
 time = np.arange(0, len(sit_at_rest) / fs, 1 / fs)
 filtered, h_t = p3m.filter_data(activities, fs, 100, [0.04, 0.4, 0.7, 27])
 # Plot each data array on its own subplot
@@ -95,13 +107,23 @@ plt.grid()
 # plot our filters response
 p3m.plot_filter_response(h_t, fs)
 
+"""
+PART 3, 4 and 5
+We contained these parts into this section,
+they are ordered by the activity with every part done for each activity
+for reading purposes
+
+"""
 #%%
 """ 
 Sit at rest
 """
+# get the first activities ecg_analysis
 ecg_analysis_A1 = p3m.detect_heartbeats(sit_at_rest, fs)
+# assign
 A1_rpeaks = ecg_analysis_A1["rpeaks"]
 A1_filtered = ecg_analysis_A1["filtered"]
+# plot the results, and annotate.
 plt.figure("A1", figsize=(15, 8), clear=True)
 plt.plot(time, A1_filtered, label="Filtered (biosppy) sit at rest signal")
 plt.plot(time[A1_rpeaks], A1_filtered[A1_rpeaks], "x", label="R-peaks")
@@ -110,12 +132,18 @@ plt.xlabel("Time (s)")
 plt.ylabel("Voltage (mV)")
 plt.legend()
 
+#variable for what we want our new dt to be
 new_dt = 0.1
+# new time course
 time_course = np.arange(0, len(time) * new_dt, new_dt)
+# get the inter beat intervals
 ibi = ecg_analysis_A1["ibi"]
-ibi_interpolated = np.interp(time_course, time[A1_rpeaks][1:], ibi)
+# interpolate this with the time_course, to get a conistent sampling frequency, in order to find fft
+ibi_interpolated = np.interp(time_course, time[A1_rpeaks][1:],
+                             ibi)
+# get the frequency respeonse of this activity
 freq_hrv, hrv_mag = p3m.get_frequency_response(ibi_interpolated, fs, dB=False)
-
+# plot and annotate using project 3 module
 plt.figure("A1HPV", figsize=(10, 8), clear=True)
 ratio_A1 = p3m.plot_frequency_bands(
     freq_hrv * new_dt,
@@ -125,7 +153,7 @@ ratio_A1 = p3m.plot_frequency_bands(
     title="Sitting at rest power vs freq bands",
     units="mV^2",
 )
-
+# REST OF COMMENTS WOULD BE SAME EXACT FROM HERE ON OUT PLEASEAE AWE AW
 
 #%%
 # Plotting each activity with the frequency bands from the module
@@ -254,5 +282,6 @@ categories = [
 ]
 p3m.plot_bar(HRV_values, categories, "HRV LF/HF ratios")
 
-
+# show all of our plots,
+# save figure was done finally and then erased to avoid annoyance when debugging.
 plt.show()
