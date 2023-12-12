@@ -85,7 +85,6 @@ def load_data(filename_1, filename_2, filename_3, filename_4, fs):
         activity_4[5*fs:300*fs] / arduino_IV_CF,
     )
 
-
     # it will also be able to plot time or frequency domain (with optional power) if the data is in either domain.
 
 
@@ -302,13 +301,13 @@ def plot_domains(data, fs):
 def get_frequency_response(time_domain, fs, dB=True):
 
     # Calculate frequency array
-    f = fft.rfftfreq(len(time_domain), 1/fs)
+    f = fft.rfftfreq(len(time_domain), 1 / fs)
 
     # Calculate Fourier transform of the data
     if dB:
         data_fft = convert_to_db(fft.rfft(time_domain))
     else:
-        data_fft = np.abs(fft.rfft(time_domain))
+        data_fft = np.abs(np.square(fft.rfft(time_domain)))
 
     return f, data_fft
 
@@ -418,7 +417,6 @@ def detect_heartbeats(ecg_data, fs, plot=False):
     ecg_analysis["hrv"] = hrv
     ecg_analysis["ibi"] = ibi
 
-
     # Calculate HRV
     return ecg_analysis
 
@@ -480,63 +478,37 @@ def plot_bar(values, categories, title, xlabel="Categories", ylabel="Values"):
     # Adjusting layout
     plt.tight_layout()
 
+
 #%% part 5
-def plot_frequency_bands(freq, fft_power, low_fc_range, high_fc_range, title = None, units = 'A.U.'):
-    '''
-    This function computes the FFT of the input signal and plots the power in the frequency domain.
-    It also isolates a low and high frequency band as specified by the inputs
-    and displays those regions on the plot. Then the mean power of the band is calculated
-    and the ratio of low frequency power to high frequency power is computed. This ratio
-    is used to approximate sympathetic nervous system activity based on the inter-beat interval
-    signal from an ECG recording.
+def plot_frequency_bands(
+    freq, fft_power, low_fc_range, high_fc_range, title=None, units="A.U."
+):
 
-    Parameters
-    ----------
-    signal : 1D array of floats size (n,) where n is the number of samples in the signal
-        Signal to compute FFT and isolate frequency bands on.
-    fs : integer
-        The sampling frequency of the signal.
-    low_fc_range : 1D list or array of floats size 2 or shape (2,)
-        The bounds of the low frequency band to be extracted.
-    high_fc_range : 1D list or array of floats size 2 or shape (2,)
-        The bounds of the high frequency band to be extracted.
-    title : string, optional
-        The title of the plot that will be created of the input signal in the frequency domain.
-        The default is None.
-    units : string, optional
-        The y axis label containg the units of the y axis. The default is 'A.U.'.
-
-    Returns
-    -------
-    ratio : float
-        The low to high frequency ratio of the mean power within the frequency bands.
-
-    '''
     # compute the fft of the signal and the corresponding frequencies for the x axis
 
     # create boolean masks for the frequency bands
-    is_low_fc_mask = (freq >= low_fc_range[0]) & (freq <= low_fc_range[1])
-    is_high_fc_mask = (freq >= high_fc_range[0]) & (freq <= high_fc_range[1])
+    is_low_fc = (freq >= low_fc_range[0]) & (freq <= low_fc_range[1])
+    is_high_fc = (freq >= high_fc_range[0]) & (freq <= high_fc_range[1])
 
     # use boolean mask to isolate frequency bands
-    low_fc_fft = fft_power[is_low_fc_mask]
-    low_fc = freq[is_low_fc_mask]
-    high_fc_fft = fft_power[is_high_fc_mask]
-    high_fc = freq[is_high_fc_mask]
-
+    low_fc_fft = fft_power[is_low_fc]
+    low_fc = freq[is_low_fc]
+    high_fc_fft = fft_power[is_high_fc]
+    high_fc = freq[is_high_fc]
 
     # plot the fft power of the signal
-    plt.plot(freq, fft_power, c = 'gray', zorder = 0 )
+    plt.plot(freq, fft_power, c="gray", zorder=0)
 
     # plot the frequency bands
-    plt.fill_between(low_fc, np.abs(low_fc_fft), label = 'low frequecy band')
-    plt.fill_between(high_fc, np.abs(high_fc_fft), label = 'high frequency band')
+    plt.fill_between(low_fc, np.abs(low_fc_fft), label="low frequecy band")
+    plt.fill_between(high_fc, np.abs(high_fc_fft), label="high frequency band")
 
     # annotate and format plot
     plt.title(title)
     plt.ylabel(units)
-    plt.xlabel('frequency (Hz)')
-    plt.xlim(0,high_fc_range[1])
+    plt.xlabel("frequency (Hz)")
+    plt.xlim(0, high_fc_range[1])
+    plt.ylim(-500, 8000)
     plt.legend()
     plt.grid()
 

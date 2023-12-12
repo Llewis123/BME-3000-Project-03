@@ -6,7 +6,7 @@ import project3_module as p3m
 #%%
 fs = 500
 
-activity_1, activity_2, activity_3, activity_4 = p3m.load_data(
+sit_at_rest, relaxing_activity, mentally_stressful, physically_stressful = p3m.load_data(
     "data_example/sitting_at_rest 3.txt",
     "data_example/relaxing_activity 3.txt",
     "data_example/mentally_stressful 3.txt",
@@ -79,7 +79,7 @@ ibi_interpolated = np.interp(time_course, time[A1_rpeaks][1:], ibi)
 freq_hrv, hrv_mag = p3m.get_frequency_response(ibi_interpolated, fs, dB=False)
 
 plt.figure("A1HPV", figsize=(10,8), clear=True)
-ratio_A1 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.15, 0.4])
+ratio_A1 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.15, 0.4], title="Sitting at rest power vs freq bands", units="mV^2")
 
 
 
@@ -99,12 +99,12 @@ plt.ylabel('Voltage (mV)')
 plt.legend()
 
 time_course = np.arange(0, len(time)*new_dt, new_dt)
-ibi = ecg_analysis_A1['ibi']
-ibi_interpolated = np.interp(time_course, time[A1_rpeaks][1:], ibi)
+ibi = ecg_analysis_A2['ibi']
+ibi_interpolated = np.interp(time_course, time[A2_rpeaks][1:], ibi)
 freq_hrv, hrv_mag = p3m.get_frequency_response(ibi_interpolated, fs, dB=False)
 
-plt.figure("A1HPV", figsize=(10,8), clear=True)
-ratio_A1 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.15, 0.4])
+plt.figure("A2HPV", figsize=(10,8), clear=True)
+ratio_A2 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.15, 0.4], title="Relaxing activity power vs freq bands", units="mV^2")
 
 
 
@@ -123,6 +123,16 @@ plt.xlabel('Time (s)')
 plt.ylabel('Voltage (mV)')
 plt.legend()
 
+time_course = np.arange(0, len(time)*new_dt, new_dt)
+ibi = ecg_analysis_A3['ibi']
+ibi_interpolated = np.interp(time_course, time[A3_rpeaks][1:], ibi)
+freq_hrv, hrv_mag = p3m.get_frequency_response(ibi_interpolated, fs, dB=False)
+
+plt.figure("A3HPV", figsize=(10,8), clear=True)
+ratio_A3 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.15, 0.4], title="Mentally stressful activity power vs freq bands", units="mV^2")
+
+
+
 #%%
 '''
 Physically stressful
@@ -138,6 +148,16 @@ plt.xlabel('Time (s)')
 plt.ylabel('Voltage (mV)')
 plt.legend()
 
+time_course = np.arange(0, len(time)*new_dt, new_dt)
+ibi = ecg_analysis_A4['ibi']
+ibi_interpolated = np.interp(time_course, time[A4_rpeaks][1:], ibi)
+freq_hrv, hrv_mag = p3m.get_frequency_response(ibi_interpolated, fs, dB=False)
+
+plt.figure("A4HPV", figsize=(10,8), clear=True)
+ratio_A4 = p3m.plot_frequency_bands(freq_hrv*new_dt, hrv_mag, [0.035, 0.15], [0.15, 0.4], title="physically stressful activity power vs freq bands", units="mV^2")
+
+
+
 
 #%%
 '''
@@ -147,9 +167,25 @@ HRV_values = [ecg_analysis_A1['hrv'],
               ecg_analysis_A2['hrv'],
               ecg_analysis_A3['hrv'],
               ecg_analysis_A4['hrv']]
-categories = ['activity one',
-              'activity two',
-              'activity three',
-              'activity four']
+categories = ['Sitting at rest',
+              'Relaxing activity',
+              'Mentally Stressful Activity',
+              'Physically stressful activity']
 p3m.plot_bar(HRV_values, categories, 'HRV vs activities')
+
+#%%
+'''
+Ratio bar plots
+'''
+HRV_values = [ratio_A1,
+              ratio_A2,
+              ratio_A3,
+              ratio_A4]
+categories = ['Sitting at rest',
+              'Relaxing activity',
+              'Mentally Stressful Activity',
+              'Physically stressful activity']
+p3m.plot_bar(HRV_values, categories, 'HRV LF/HF ratios')
+
+
 plt.show()
